@@ -1202,12 +1202,219 @@ async function showReport(type) {
 
 async function loadSettings() {
   const c = document.getElementById('settingsContent');
-  c.innerHTML = '<div style=text-align:center;padding:40px;color:#888>Loading...</div>';
+  c.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;">
+      <button class="btn small active" onclick="showSettingsTab('menu')">Menu Items</button>
+      <button class="btn small" onclick="showSettingsTab('modifiers')">Modifiers</button>
+      <button class="btn small" onclick="showSettingsTab('stock')">Stock</button>
+    </div>
+    <div id="settingsTabContent"></div>
+  `;
+  showSettingsTab('menu');
+}
+
+async function showSettingsTab(tab) {
+  const content = document.getElementById('settingsTabContent');
+  document.querySelectorAll('#settingsContent .btn.small').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  if (tab === 'menu') {
+    try {
+      const res = await fetch(API + '/api/menu', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+      const items = await res.json();
+      const catRes = await fetch(API + '/api/menu/categories');
+      const categories = await catRes.json();
+      const catOptions = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      
+      content.innerHTML = `
+        <button class="btn" style="margin-bottom:16px;width:100%;" onclick="showAddMenuItemModal()">+ Add Menu Item</button>
+        <div style="display:grid;gap:8px;">
+          ${items.length ? items.map(i => `
+            <div style="background:#16213e;padding:12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:bold;">${i.name}</div>
+                <div style="color:#888;font-size:12px;">${i.category} - $${i.price.toFixed(2)}</div>
+              </div>
+              <button class="btn small" onclick="editMenuItem(${i.id})">Edit</button>
+            </div>
+          `).join('') : '<div style="color:#888;text-align:center;padding:20px;">No menu items yet</div>'}
+        </div>
+      `;
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading menu - Admin required</div>'; }
+  } else if (tab === 'modifiers') {
+    try {
+      const res = await fetch(API + '/api/modifiers');
+      const modifiers = await res.json();
+      const grouped = {};
+      modifiers.forEach(m => {
+        if (!grouped[m.category]) grouped[m.category] = [];
+        grouped[m.category].push(m);
+      });
+      
+      content.innerHTML = `
+        <button class="btn" style="margin-bottom:16px;width:100%;" onclick="showAddModifierModal()">+ Add Modifier</button>
+        <div style="display:grid;gap:16px;">
+          ${Object.keys(grouped).length ? Object.entries(grouped).map(([cat, mods]) => `
+            <div style="background:#16213e;padding:12px;border-radius:8px;">
+              <div style="font-weight:bold;margin-bottom:8px;text-transform:uppercase;font-size:12px;color:#e94560;">${cat}</div>
+              ${mods.map(m => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #333;">
+                  <span>${m.name} ${m.price ? '($' + m.price.toFixed(2) + ')' : ''}</span>
+                  <button class="btn small" style="background:#ff4444;" onclick="deleteModifier(${m.id})">×</button>
+                </div>
+              `).join('')}
+            </div>
+          `).join('') : '<div style="color:#888;text-align:center;padding:20px;">No modifiers yet</div>'}
+        </div>
+      `;
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading modifiers</div>'; }
+  } else if (tab === 'stock') {
+    try {
+      const res = await fetch(API + '/api/menu', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+      const items = await res.json();
+      content.innerHTML = `
+        <div style="display:grid;gap:8px;">
+          ${items.map(i => `
+            <div style="background:#16213e;padding:12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:bold;">${i.name}</div>
+                <div style="color:#888;font-size:12px;">Stock: ${i.stock !== null ? i.stock : 'Unlimited'}</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" id="stock-${i.id}" value="${i.stock || 0}" style="width:60px;padding:8px;border-radius:4px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+                <button class="btn small" onclick="updateStock(${i.id})">Update</button>
+                <button class="btn small" style="background:#ff4444;" onclick="removeStock(${i.id})">Remove</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
+  }
+}
+
+async function showAddMenuItemModal() {
+  const catRes = await fetch(API + '/api/menu/categories');
+  const categories = await catRes.json();
+  const catOptions = categories.length ? categories.map(c => `<option value="${c}">${c}</option>`).join('') : '<option value="Main">Main</option>';
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="text" id="newItemName" placeholder="Item Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <select id="newItemCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        ${catOptions}
+        <option value="__new__">+ New Category</option>
+      </select>
+      <input type="number" id="newItemPrice" placeholder="Price" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <input type="text" id="newItemDesc" placeholder="Description" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemPopular"> Popular</label>
+      <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemSpicy"> Spicy</label>
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Add Menu Item';
+  document.getElementById('itemModal').style.display = 'block';
+  
+  document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+}
+
+async function showAddModifierModal() {
+  const catRes = await fetch(API + '/api/menu/categories');
+  const categories = await catRes.json();
+  const catOptions = categories.length ? categories.map(c => `<option value="${c}">${c}</option>`).join('') : '<option value="Extras">Extras</option><option value="Size">Size</option>';
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="text" id="newModName" placeholder="Modifier Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <select id="newModCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        ${catOptions}
+        <option value="Size">Size</option>
+        <option value="Extras">Extras</option>
+        <option value="Spice Level">Spice Level</option>
+        <option value="Toppings">Toppings</option>
+      </select>
+      <input type="number" id="newModPrice" placeholder="Additional Price (0 for free)" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Add Modifier';
+  document.getElementById('itemModal').style.display = 'block';
+  
+  document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+}
+
+async function editMenuItem(id) {
   try {
-    const res = await fetch(API + '/api/settings', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
-    const s = await res.json();
-    c.innerHTML = s.map(x => '<div style=background:#16213e;padding:16px;border-radius:12px;margin-bottom:8px><div style=font-weight:bold>' + x.key + '</div><div style=color:#888;font-size:14px>' + x.value + '</div></div>').join('');
-  } catch(e) { c.innerHTML = '<div style=color:#ff4444>Error - Admin required</div>'; }
+    const res = await fetch(API + '/api/menu/' + id, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+    const item = await res.json();
+    const catRes = await fetch(API + '/api/menu/categories');
+    const categories = await catRes.json();
+    const catOptions = categories.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`).join('');
+    
+    const html = `
+      <div style="display:grid;gap:12px;">
+        <input type="text" id="editItemName" value="${item.name}" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <select id="editItemCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+          ${catOptions}
+        </select>
+        <input type="number" id="editItemPrice" value="${item.price}" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <input type="text" id="editItemDesc" value="${item.description || ''}" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="editItemPopular" ${item.popular ? 'checked' : ''}> Popular</label>
+        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="editItemSpicy" ${item.spicy ? 'checked' : ''}> Spicy</label>
+        <button class="btn" onclick="saveMenuItem(${id})">Save Changes</button>
+      </div>
+    `;
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalTitle').textContent = 'Edit Menu Item';
+    document.getElementById('itemModal').style.display = 'block';
+    document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+  } catch(e) { alert('Error loading item'); }
+}
+
+async function saveMenuItem(id) {
+  const data = {
+    name: document.getElementById('editItemName').value,
+    category: document.getElementById('editItemCategory').value,
+    price: parseFloat(document.getElementById('editItemPrice').value),
+    description: document.getElementById('editItemDesc').value,
+    popular: document.getElementById('editItemPopular').checked,
+    spicy: document.getElementById('editItemSpicy').checked
+  };
+  await fetch(API + '/api/menu/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify(data)
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('menu');
+}
+
+async function updateStock(id) {
+  const stock = parseInt(document.getElementById('stock-' + id).value);
+  await fetch(API + '/api/menu/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ stock })
+  });
+  alert('Stock updated!');
+}
+
+async function removeStock(id) {
+  if (!confirm('Remove all stock? Set to 0?')) return;
+  await fetch(API + '/api/menu/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ stock: 0 })
+  });
+  document.getElementById('stock-' + id).value = 0;
+  alert('Stock removed!');
+}
+
+async function deleteModifier(id) {
+  if (!confirm('Delete this modifier?')) return;
+  await fetch(API + '/api/modifiers/' + id, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }
+  });
+  showSettingsTab('modifiers');
 }
 </script>
 

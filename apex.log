@@ -1,4 +1,4 @@
-◇ injecting env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injecting env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
 DB synced
 Seeded staff
 Seeded menu with modifiers

@@ -68,6 +68,12 @@ app.get('/api/menu', async (req, res) => {
   res.json(items);
 });
 
+app.get('/api/menu/categories', async (req, res) => {
+  const items = await MenuItem.findAll({ attributes: ['category'], group: ['category'] });
+  const categories = items.map(i => i.category).filter(c => c);
+  res.json(categories);
+});
+
 app.get('/api/menu/:id', async (req, res) => {
   const item = await MenuItem.findByPk(req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found' });
@@ -102,6 +108,11 @@ app.delete('/api/menu/:id', authMiddleware, adminOnly, async (req, res) => {
 app.get('/api/modifiers', async (req, res) => {
   const modifiers = await MenuModifier.findAll();
   res.json(modifiers);
+});
+
+app.post('/api/modifiers', authMiddleware, adminOnly, async (req, res) => {
+  const modifier = await MenuModifier.create(req.body);
+  res.json(modifier);
 });
 
 app.post('/api/menu/:id/modifiers', authMiddleware, adminOnly, async (req, res) => {
