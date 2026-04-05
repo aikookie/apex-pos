@@ -39,6 +39,9 @@ const adminOnly = (req, res, next) => {
 // ============ Health ============
 app.get('/health', (req, res) => res.send('OK'));
 
+// ============ Frontend ============
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'static', 'index.html')));
+
 // ============ Auth ============
 app.get('/api/staff', async (req, res) => {
   const staff = await Staff.findAll({ where: { active: true }, attributes: ['id', 'name', 'role'] });
@@ -63,6 +66,12 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/menu', async (req, res) => {
   const items = await MenuItem.findAll();
   res.json(items);
+});
+
+app.get('/api/menu/:id', async (req, res) => {
+  const item = await MenuItem.findByPk(req.params.id);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  res.json(item);
 });
 
 app.get('/api/menu/:id/modifiers', async (req, res) => {
