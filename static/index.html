@@ -453,9 +453,7 @@ function showScreen(id) {
   // Hide all screens
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active');
-    if (s.classList.contains('login-screen')) {
-      s.style.display = 'none';
-    }
+    s.style.display = 'none';
   });
   
   // Show the requested screen
@@ -463,6 +461,8 @@ function showScreen(id) {
   el.classList.add('active');
   if (el.classList.contains('login-screen')) {
     el.style.display = 'flex';
+  } else {
+    el.style.display = 'block';
   }
 }
 
