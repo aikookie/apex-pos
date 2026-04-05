@@ -431,7 +431,7 @@ async function verifyPin() {
       loadMenu();
       loadTables();
       loadOrders();
-      checkStockEnabled();
+
     } else {
       pin = '';
       updatePinDisplay();
@@ -505,16 +505,6 @@ function renderCategories() {
   });
 }
 
-let stockEnabled = false;
-async function checkStockEnabled() {
-  try {
-    const res = await fetch(API + '/api/settings/stock_enabled');
-    const s = await res.json();
-    stockEnabled = s.value === 'true';
-    localStorage.setItem('stock_enabled', stockEnabled);
-  } catch(e) { stockEnabled = false; }
-}
-
 function renderMenu() {
   const container = document.getElementById('menuGrid');
   const items = selectedCategory === 'all' 
@@ -526,16 +516,19 @@ function renderMenu() {
     return;
   }
   
-  const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
-  
   container.innerHTML = items.map(item => `
     <div class="menu-item" data-id="${item.id}">
       <h3>${item.name}</h3>
       <div class="price">$${item.price.toFixed(2)}</div>
-      ${stockEnabled && item.stock != null ? '<div class="stock">Stock: ' + item.stock + '</div>' : ''}
+      <div class="stock">Stock: ${item.stock}</div>
       ${item.spicy ? '<div class="spicy">🌶️ Spicy</div>' : ''}
     </div>
   `).join('');
+  
+  container.querySelectorAll('.menu-item').forEach(el => {
+    el.addEventListener('click', () => openItemModal(parseInt(el.dataset.id)));
+  });
+}
   
   container.querySelectorAll('.menu-item').forEach(el => {
     el.addEventListener('click', () => openItemModal(parseInt(el.dataset.id)));
@@ -1298,9 +1291,12 @@ async function showSettingsTab(tab, btn) {
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
   } else if (tab === 'system') {
     try {
-      const stockRes = await fetch(API + '/api/settings/stock_enabled', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
-      const stockSetting = await stockRes.json();
-      const stockEnabled = stockSetting.value === 'true';
+      let stockEnabled = false;
+      try {
+        const stockRes = await fetch(API + '/api/settings/stock_enabled', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+        const stockSetting = await stockRes.json();
+        stockEnabled = stockSetting.value === 'true';
+      } catch(e) { stockEnabled = false; }
       
       content.innerHTML = `
         <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
