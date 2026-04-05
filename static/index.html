@@ -431,6 +431,7 @@ async function verifyPin() {
       loadMenu();
       loadTables();
       loadOrders();
+      checkStockEnabled();
     } else {
       pin = '';
       updatePinDisplay();
@@ -504,6 +505,16 @@ function renderCategories() {
   });
 }
 
+let stockEnabled = false;
+async function checkStockEnabled() {
+  try {
+    const res = await fetch(API + '/api/settings/stock_enabled');
+    const s = await res.json();
+    stockEnabled = s.value === 'true';
+    localStorage.setItem('stock_enabled', stockEnabled);
+  } catch(e) { stockEnabled = false; }
+}
+
 function renderMenu() {
   const container = document.getElementById('menuGrid');
   const items = selectedCategory === 'all' 
@@ -515,11 +526,13 @@ function renderMenu() {
     return;
   }
   
+  const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
+  
   container.innerHTML = items.map(item => `
     <div class="menu-item" data-id="${item.id}">
       <h3>${item.name}</h3>
       <div class="price">$${item.price.toFixed(2)}</div>
-      <div class="stock">Stock: ${item.stock}</div>
+      ${stockEnabled && item.stock != null ? '<div class="stock">Stock: ' + item.stock + '</div>' : ''}
       ${item.spicy ? '<div class="spicy">🌶️ Spicy</div>' : ''}
     </div>
   `).join('');
@@ -1284,20 +1297,46 @@ async function showSettingsTab(tab, btn) {
       `;
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
   } else if (tab === 'system') {
-    content.innerHTML = `
-      <button class="btn" style="width:100%;margin-bottom:12px;" id="testApiBtn">Test API</button>
-      <button class="btn secondary" style="width:100%;margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
-      <button class="btn" style="width:100%;margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
-      <button class="btn" style="width:100%;margin-bottom:12px;" id="logoutBtn">Logout</button>
-      <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
-    `;
-    // Re-attach event listeners
-    setTimeout(() => {
-      document.getElementById('logoutBtn')?.addEventListener('click', () => { localStorage.clear(); location.reload(); });
-      document.getElementById('testApiBtn')?.addEventListener('click', async () => { alert('API working!'); });
-      document.getElementById('printBtn')?.addEventListener('click', async () => { alert('No recent receipt'); });
-      document.getElementById('printerSettingsBtn')?.addEventListener('click', async () => { document.getElementById('printerModal').style.display = 'block'; });
-    }, 100);
+    try {
+      const stockRes = await fetch(API + '/api/settings/stock_enabled', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+      const stockSetting = await stockRes.json();
+      const stockEnabled = stockSetting.value === 'true';
+      
+      content.innerHTML = `
+        <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:bold;">Stock Tracking</div>
+            <div style="color:#888;font-size:12px;">Enable/disable inventory tracking</div>
+          </div>
+          <label style="position:relative;width:50px;height:26px;">
+            <input type="checkbox" id="stockToggle" ${stockEnabled ? 'checked' : ''} style="opacity:0;width:0;height:0;">
+            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${stockEnabled ? '#4ade80' : '#333'};border-radius:26px;transition:0.3s;">
+              <span style="position:absolute;height:20px;width:20px;left:${stockEnabled ? '27px' : '3px'};bottom:3px;background:#fff;border-radius:50%;transition:0.3s;"></span>
+            </span>
+          </label>
+        </div>
+        <button class="btn" style="width:100%;margin-bottom:12px;" id="testApiBtn">Test API</button>
+        <button class="btn secondary" style="width:100%;margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
+        <button class="btn" style="width:100%;margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
+        <button class="btn" style="width:100%;margin-bottom:12px;" id="logoutBtn">Logout</button>
+        <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
+      `;
+      
+      setTimeout(() => {
+        document.getElementById('stockToggle')?.addEventListener('change', async (e) => {
+          await fetch(API + '/api/settings/stock_enabled', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+            body: JSON.stringify({ value: e.target.checked ? 'true' : 'false' })
+          });
+          alert('Stock tracking ' + (e.target.checked ? 'enabled' : 'disabled'));
+        });
+        document.getElementById('logoutBtn')?.addEventListener('click', () => { localStorage.clear(); location.reload(); });
+        document.getElementById('testApiBtn')?.addEventListener('click', async () => { alert('API working!'); });
+        document.getElementById('printBtn')?.addEventListener('click', async () => { alert('No recent receipt'); });
+        document.getElementById('printerSettingsBtn')?.addEventListener('click', async () => { document.getElementById('printerModal').style.display = 'block'; });
+      }, 100);
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading system settings - Admin required</div>'; }
   }
 }
 

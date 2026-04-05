@@ -653,6 +653,10 @@ app.put('/api/inventory/:id', authMiddleware, adminOnly, async (req, res) => {
   }
   console.log('Seeded employees');
 
+  // Seed default settings
+  await Setting.upsert({ key: 'stock_enabled', value: 'false', category: 'system' });
+  console.log('Seeded settings');
+
   // ============ Receipt Printing ============
   
   // Network (Ethernet) printer helper
