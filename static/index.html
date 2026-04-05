@@ -1204,20 +1204,20 @@ async function loadSettings() {
   const c = document.getElementById('settingsContent');
   c.innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;">
-      <button class="btn small active" onclick="showSettingsTab('menu')">Menu Items</button>
-      <button class="btn small" onclick="showSettingsTab('modifiers')">Modifiers</button>
-      <button class="btn small" onclick="showSettingsTab('stock')">Stock</button>
-      <button class="btn small" onclick="showSettingsTab('system')">System</button>
+      <button class="btn small active" onclick="showSettingsTab('menu', this)">Menu Items</button>
+      <button class="btn small" onclick="showSettingsTab('modifiers', this)">Modifiers</button>
+      <button class="btn small" onclick="showSettingsTab('stock', this)">Stock</button>
+      <button class="btn small" onclick="showSettingsTab('system', this)">System</button>
     </div>
     <div id="settingsTabContent"></div>
   `;
-  showSettingsTab('menu');
+  showSettingsTab('menu', null);
 }
 
-async function showSettingsTab(tab) {
+async function showSettingsTab(tab, btn) {
   const content = document.getElementById('settingsTabContent');
   document.querySelectorAll('#settingsContent .btn.small').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
   
   if (tab === 'menu') {
     try {
@@ -1399,7 +1399,7 @@ async function saveMenuItem(id) {
     body: JSON.stringify(data)
   });
   document.getElementById('itemModal').style.display = 'none';
-  showSettingsTab('menu');
+  showSettingsTab('menu', null);
 }
 
 async function updateStock(id) {
@@ -1429,7 +1429,7 @@ async function deleteModifier(id) {
     method: 'DELETE',
     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }
   });
-  showSettingsTab('modifiers');
+  showSettingsTab('modifiers', null);
 }
 </script>
 
