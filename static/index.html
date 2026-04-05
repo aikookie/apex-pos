@@ -346,9 +346,6 @@
   <div class="nav-item" data-screen="settings">
     <span class="nav-icon">⚙️</span>Settings
   </div>
-  <div class="nav-item" data-screen="settings">
-    <span class="nav-icon">⚙️</span>Settings
-  </div>
 </nav>
 
 <!-- Item Modal -->
@@ -476,6 +473,10 @@ document.querySelectorAll('.nav-item').forEach(item => {
     showScreen(screen);
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     item.classList.add('active');
+    // Load data for specific screens
+    if (screen === 'kitchen') loadKitchenOrders();
+    if (screen === 'reports') showReport('sales');
+    if (screen === 'settings') loadSettings();
   });
 });
 
@@ -1188,10 +1189,6 @@ async function markReady(id) {
   loadKitchenOrders();
 }
 
-// Add to showScreen
-html = html.replace("if (screen === 'orders') loadOrders();", "if (screen === 'orders') loadOrders();
-    if (screen === 'kitchen') loadKitchenOrders();");
-
 async function showReport(type) {
   const c = document.getElementById('reportContent');
   c.innerHTML = '<div style=text-align:center;padding:40px;color:#888>Loading...</div>';
@@ -1203,9 +1200,6 @@ async function showReport(type) {
   } catch(e) { c.innerHTML = '<div style=color:#ff4444>Error - Admin required</div>'; }
 }
 
-html = html.replace('if (screen === 'kitchen') loadKitchenOrders();', "if (screen === 'kitchen') loadKitchenOrders();
-    if (screen === 'reports') showReport('sales');");
-
 async function loadSettings() {
   const c = document.getElementById('settingsContent');
   c.innerHTML = '<div style=text-align:center;padding:40px;color:#888>Loading...</div>';
@@ -1215,9 +1209,6 @@ async function loadSettings() {
     c.innerHTML = s.map(x => '<div style=background:#16213e;padding:16px;border-radius:12px;margin-bottom:8px><div style=font-weight:bold>' + x.key + '</div><div style=color:#888;font-size:14px>' + x.value + '</div></div>').join('');
   } catch(e) { c.innerHTML = '<div style=color:#ff4444>Error - Admin required</div>'; }
 }
-
-html = html.replace("if (screen === 'reports') showReport('sales');", "if (screen === 'reports') showReport('sales');
-    if (screen === 'settings') loadSettings();");
 </script>
 
 
