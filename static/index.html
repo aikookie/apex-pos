@@ -1292,7 +1292,15 @@ async function showSettingsTab(tab, btn) {
       `;
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
   } else if (tab === 'system') {
+    const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
     content.innerHTML = `
+      <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:bold;">Stock Tracking</div>
+          <div style="color:#888;font-size:12px;">Show stock in menu</div>
+        </div>
+        <button class="btn small" onclick="toggleStock()" style="background:${stockEnabled ? '#4ade80' : '#333'};">${stockEnabled ? 'ON' : 'OFF'}</button>
+      </div>
       <button class="btn" style="width:100%;margin-bottom:12px;" id="testApiBtn">Test API</button>
       <button class="btn secondary" style="width:100%;margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
       <button class="btn" style="width:100%;margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
@@ -1323,6 +1331,7 @@ async function showAddMenuItemModal() {
       <input type="text" id="newItemDesc" placeholder="Description" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
       <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemPopular"> Popular</label>
       <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemSpicy"> Spicy</label>
+      <button class="btn" style="margin-top:12px;width:100%;" onclick="saveNewMenuItem()">Save Menu Item</button>
     </div>
   `;
   document.getElementById('modalBody').innerHTML = html;
@@ -1330,6 +1339,24 @@ async function showAddMenuItemModal() {
   document.getElementById('itemModal').style.display = 'block';
   
   document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+}
+
+async function saveNewMenuItem() {
+  const name = document.getElementById('newItemName').value;
+  if (!name) return alert('Name required');
+  const category = document.getElementById('newItemCategory').value;
+  const price = parseFloat(document.getElementById('newItemPrice').value) || 0;
+  const description = document.getElementById('newItemDesc').value;
+  const popular = document.getElementById('newItemPopular').checked;
+  const spicy = document.getElementById('newItemSpicy').checked;
+  
+  await fetch(API + '/api/menu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price, description, popular, spicy })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('menu', null);
 }
 
 async function showAddModifierModal() {
@@ -1347,6 +1374,7 @@ async function showAddModifierModal() {
         <option value="Toppings">Toppings</option>
       </select>
       <input type="number" id="newModPrice" placeholder="Additional Price (0 for free)" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <button class="btn" style="margin-top:12px;width:100%;" onclick="saveNewModifier()">Save Modifier</button>
     </div>
   `;
   document.getElementById('modalBody').innerHTML = html;
@@ -1354,6 +1382,27 @@ async function showAddModifierModal() {
   document.getElementById('itemModal').style.display = 'block';
   
   document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+}
+
+async function saveNewModifier() {
+  const name = document.getElementById('newModName').value;
+  if (!name) return alert('Name required');
+  const category = document.getElementById('newModCategory').value;
+  const price = parseFloat(document.getElementById('newModPrice').value) || 0;
+  
+  await fetch(API + '/api/modifiers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('modifiers', null);
+}
+
+function toggleStock() {
+  const current = localStorage.getItem('stock_enabled');
+  localStorage.setItem('stock_enabled', current === 'true' ? 'false' : 'true');
+  showSettingsTab('system', null);
 }
 
 async function editMenuItem(id) {
