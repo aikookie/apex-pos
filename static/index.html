@@ -509,11 +509,12 @@ function renderMenu() {
     return;
   }
   
+  const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
   container.innerHTML = items.map(item => `
     <div class="menu-item" data-id="${item.id}">
       <h3>${item.name}</h3>
       <div class="price">$${item.price.toFixed(2)}</div>
-      <div class="stock">Stock: ${item.stock}</div>
+      ${stockEnabled && item.stock != null ? '<div class="stock">Stock: ' + item.stock + '</div>' : ''}
       ${item.spicy ? '<div class="spicy">🌶️ Spicy</div>' : ''}
     </div>
   `).join('');
