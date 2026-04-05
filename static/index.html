@@ -445,9 +445,7 @@ function showScreen(id) {
   // Hide all screens
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active');
-    if (s.classList.contains('login-screen')) {
-      s.style.display = 'none';
-    }
+    s.style.display = 'none';
   });
   
   // Show the requested screen
@@ -455,6 +453,8 @@ function showScreen(id) {
   el.classList.add('active');
   if (el.classList.contains('login-screen')) {
     el.style.display = 'flex';
+  } else {
+    el.style.display = 'block';
   }
 }
 
@@ -1199,6 +1199,7 @@ async function loadSettings() {
       <button class="btn small active" onclick="showSettingsTab('menu', this)">Menu Items</button>
       <button class="btn small" onclick="showSettingsTab('modifiers', this)">Modifiers</button>
       <button class="btn small" onclick="showSettingsTab('stock', this)">Stock</button>
+      <button class="btn small" onclick="showSettingsTab('system', this)">System</button>
     </div>
     <div id="settingsTabContent"></div>
   `;
@@ -1282,6 +1283,21 @@ async function showSettingsTab(tab, btn) {
         </div>
       `;
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
+  } else if (tab === 'system') {
+    content.innerHTML = `
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="testApiBtn">Test API</button>
+      <button class="btn secondary" style="width:100%;margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="logoutBtn">Logout</button>
+      <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
+    `;
+    // Re-attach event listeners
+    setTimeout(() => {
+      document.getElementById('logoutBtn')?.addEventListener('click', () => { localStorage.clear(); location.reload(); });
+      document.getElementById('testApiBtn')?.addEventListener('click', async () => { alert('API working!'); });
+      document.getElementById('printBtn')?.addEventListener('click', async () => { alert('No recent receipt'); });
+      document.getElementById('printerSettingsBtn')?.addEventListener('click', async () => { document.getElementById('printerModal').style.display = 'block'; });
+    }, 100);
   }
 }
 
