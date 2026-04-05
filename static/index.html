@@ -527,9 +527,35 @@ function renderMenu() {
   });
 }
 
-function openItemModal(itemId) {
+let itemModifiers = [];
+
+async function openItemModal(itemId) {
   const item = menuItems.find(i => i.id === itemId);
   if (!item) return;
+  
+  itemModifiers = [];
+  
+  // Fetch modifiers from backend
+  let modifiersHtml = '';
+  try {
+    const res = await fetch(API + '/api/menu/' + itemId + '/modifiers');
+    const mods = await res.json();
+    
+    if (mods.length > 0) {
+      const categories = [...new Set(mods.map(m => m.category))];
+      let catHtml = '';
+      categories.forEach(cat => {
+        catHtml += '<div style="margin-bottom:12px;"><div style="font-size:12px;color:#888;margin-bottom:4px;text-transform:uppercase;margin-top:8px;">' + cat + '</div>';
+        const catMods = mods.filter(m => m.category === cat);
+        catMods.forEach(m => {
+          const priceStr = m.price > 0 ? ' (+$' + m.price.toFixed(2) + ')' : '';
+          catHtml += '<label style="display:flex;align-items:center;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;cursor:pointer;"><input type="checkbox" style="width:18px;height:18px;margin-right:8px;" onchange="toggleItemModifier(' + m.id + ', \"' + m.name + '\", ' + m.price + ')"><span style="font-size:14px;">' + m.name + priceStr + '</span></label>';
+        });
+        catHtml += '</div>';
+      });
+      modifiersHtml = '<div style="margin-top:20px;padding-top:20px;border-top:1px solid #333;"><div style="font-weight:bold;margin-bottom:12px;color:#e94560;">MODIFIERS</div>' + catHtml + '</div>';
+    }
+  } catch(e) {}
   
   document.getElementById('modalTitle').textContent = item.name;
   document.getElementById('modalBody').innerHTML = `
@@ -542,17 +568,26 @@ function openItemModal(itemId) {
       <span id="qtyDisplay" style="font-size:24px; padding:0 20px;">1</span>
       <button class="btn" onclick="updateQty(${item.id}, 1)">+</button>
     </div>
+    ${modifiersHtml}
     <div style="margin-top:20px;">
-      <label style="display:block; margin-bottom:8px; color:#888;">📝 Remarks / Special Requests</label>
-      <textarea id="itemRemarks" placeholder="e.g. No onions, extra sauce, allergen warning..." 
+      <label style="display:block; margin-bottom:8px; color:#888;">📝 Remarks</label>
+      <textarea id="itemRemarks" placeholder="Special requests..." 
         style="width:100%; padding:12px; background:#16213e; color:#fff; border:1px solid #333; 
-        border-radius:8px; min-height:80px; resize:none; font-family:inherit;"></textarea>
+        border-radius:8px; min-height:60px; resize:none; font-family:inherit;"></textarea>
     </div>
     <button class="btn" style="width:100%; margin-top:20px;" onclick="addItemToCart(${item.id});">
-      Add to Cart — $${item.price.toFixed(2)}
+      Add to Cart
     </button>
   `;
   document.getElementById('itemModal').classList.add('active');
+}
+
+function toggleItemModifier(modId, modName, modPrice) {
+  if (itemModifiers.some(m => m.id === modId)) {
+    itemModifiers = itemModifiers.filter(m => m.id !== modId);
+  } else {
+    itemModifiers.push({ id: modId, name: modName, price: modPrice });
+  }
 }
 
 function updateQty(itemId, delta) {
@@ -565,7 +600,10 @@ function updateQty(itemId, delta) {
 function addItemToCart(itemId) {
   const qty = parseInt(document.getElementById('qtyDisplay').textContent);
   const remarks = document.getElementById('itemRemarks').value.trim();
-  addToCart(itemId, qty, remarks);
+  const modNames = itemModifiers.map(m => m.name).join(', ');
+  const fullRemarks = modNames ? modNames + (remarks ? ' | ' + remarks : '') : remarks;
+  addToCart(itemId, qty, fullRemarks);
+  document.getElementById('itemModal').classList.remove('active');
 }
 
 function closeModal() {
