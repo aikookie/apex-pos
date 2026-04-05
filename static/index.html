@@ -1221,7 +1221,7 @@ async function showSettingsTab(tab, btn) {
   
   if (tab === 'menu') {
     try {
-      const res = await fetch(API + '/api/menu', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+      const res = await fetch(API + '/api/menu');
       const items = await res.json();
       const catRes = await fetch(API + '/api/menu/categories');
       const categories = await catRes.json();
@@ -1271,7 +1271,7 @@ async function showSettingsTab(tab, btn) {
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading modifiers</div>'; }
   } else if (tab === 'stock') {
     try {
-      const res = await fetch(API + '/api/menu', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+      const res = await fetch(API + '/api/menu');
       const items = await res.json();
       content.innerHTML = `
         <div style="display:grid;gap:8px;">
