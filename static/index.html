@@ -263,17 +263,9 @@
 </div>
 
 <!-- Settings Screen -->
-<div id="settings" class="screen">
-  <div class="header">
-    <h1>Settings</h1>
-  </div>
-  <div style="padding: 20px;">
-    <button class="btn" style="width:100%; margin-bottom:12px;" id="testApiBtn">Test API</button>
-    <button class="btn secondary" style="width:100%; margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
-    <button class="btn" style="width:100%; margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
-    <button class="btn" style="width:100%; margin-bottom:12px;" id="logoutBtn">Logout</button>
-    <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
-  </div>
+<div id="settings" class="screen" style="display:none;">
+  <div class="header"><h1>Settings</h1></div>
+  <div id="settingsContent"></div>
 </div>
 
 <!-- Printer Settings Modal -->
