@@ -337,6 +337,15 @@
   <div class="nav-item" data-screen="orders">
     <span class="nav-icon">📝</span>Orders
   </div>
+  <div class="nav-item" data-screen="kitchen">
+    <span class="nav-icon">👨‍🍳</span>Kitchen
+  </div>
+  <div class="nav-item" data-screen="reports">
+    <span class="nav-icon">📊</span>Reports
+  </div>
+  <div class="nav-item" data-screen="settings">
+    <span class="nav-icon">⚙️</span>Settings
+  </div>
   <div class="nav-item" data-screen="settings">
     <span class="nav-icon">⚙️</span>Settings
   </div>
@@ -1128,7 +1137,128 @@ document.getElementById('scanBluetoothBtn').addEventListener('click', async () =
     container.innerHTML = '<div style="color:#e94560;">' + e.message + '</div>';
   }
 });
+
+function openCheckoutModal() {
+  if(!cart.length) return alert('Cart empty!');
+  const subtotal = cart.reduce((s,c) => s + c.qty*c.price, 0);
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
+  
+  document.getElementById('checkoutItems').innerHTML = cart.map(c => 
+    '<div style="display:flex;justify-content:space-between;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;"><span>' + c.qty + 'x ' + c.name + '</span><span>$' + (c.qty*c.price).toFixed(2) + '</span></div>'
+  ).join('');
+  
+  document.getElementById('chkSubtotal').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('chkTax').textContent = '$' + tax.toFixed(2);
+  document.getElementById('chkTotal').textContent = '$' + total.toFixed(2);
+  document.getElementById('checkoutModal').style.display = 'block';
+}
+
+async function processPayment(method) {
+  const total = (cart.reduce((s,c) => s + c.qty*c.price, 0) * 1.08).toFixed(2);
+  alert(method.toUpperCase() + ' payment of $' + total + ' processed!');
+  cart = [];
+  updateCartUI();
+  document.getElementById('checkoutModal').style.display = 'none';
+}
+
+// Hook checkout button
+document.getElementById('checkoutBtn').onclick = openCheckoutModal;
+
+async function loadKitchenOrders() {
+  try {
+    const res = await fetch(API + '/api/kitchen/orders');
+    const orders = await res.json();
+    const grid = document.getElementById('kitchenGrid');
+    if(!orders.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#888;padding:40px;">No active orders</div>';
+      return;
+    }
+    grid.innerHTML = orders.map(o => {
+      const age = Math.floor((Date.now() - new Date(o.createdAt))/60000);
+      const color = age > 15 ? '#ff4444' : age > 10 ? '#ffaa00' : '#4ade80';
+      const items = (o.items || []).map(i => '<div style="padding:6px;background:#1a1a2e;border-radius:4px;margin-bottom:4px;">' + i.qty + 'x ' + i.name + (i.remarks ? '<br><small style=color:#888>' + i.remarks + '</small>' : '') + '</div>').join('');
+      return '<div style="background:#16213e;border-radius:12px;padding:12px;border-left:4px solid ' + color + '"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><strong>#' + o.id + '</strong><span style="color:' + color + '">' + age + ' min</span></div>' + items + '<button class="btn" style="width:100%;margin-top:8px;background:#4ade80;" onclick="markReady(' + o.id + ')">Ready</button></div>';
+    }).join('');
+  } catch(e) { document.getElementById('kitchenGrid').innerHTML = '<div style=color:#ff4444>Error loading orders</div>'; }
+}
+
+async function markReady(id) {
+  await fetch(API + '/api/kitchen/orders/' + id + '/ready', { method: 'PUT', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+  loadKitchenOrders();
+}
+
+// Add to showScreen
+html = html.replace("if (screen === 'orders') loadOrders();", "if (screen === 'orders') loadOrders();
+    if (screen === 'kitchen') loadKitchenOrders();");
+
+async function showReport(type) {
+  const c = document.getElementById('reportContent');
+  c.innerHTML = '<div style=text-align:center;padding:40px;color:#888>Loading...</div>';
+  try {
+    const res = await fetch(API + '/api/reports/' + type, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+    const d = await res.json();
+    if(type === 'sales') c.innerHTML = '<div style=background:#16213e;padding:24px;border-radius:12px;text-align:center><div style=font-size:32px;font-weight:bold;color:#e94560>$' + (d.totalSales||0) + '</div><div style=color:#888>Total Sales</div></div>';
+    else c.innerHTML = d.map(e => '<div style=background:#16213e;padding:16px;border-radius:12px;margin-bottom:8px><div style=font-weight:bold>' + e.name + '</div></div>').join('');
+  } catch(e) { c.innerHTML = '<div style=color:#ff4444>Error - Admin required</div>'; }
+}
+
+html = html.replace('if (screen === 'kitchen') loadKitchenOrders();', "if (screen === 'kitchen') loadKitchenOrders();
+    if (screen === 'reports') showReport('sales');");
+
+async function loadSettings() {
+  const c = document.getElementById('settingsContent');
+  c.innerHTML = '<div style=text-align:center;padding:40px;color:#888>Loading...</div>';
+  try {
+    const res = await fetch(API + '/api/settings', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+    const s = await res.json();
+    c.innerHTML = s.map(x => '<div style=background:#16213e;padding:16px;border-radius:12px;margin-bottom:8px><div style=font-weight:bold>' + x.key + '</div><div style=color:#888;font-size:14px>' + x.value + '</div></div>').join('');
+  } catch(e) { c.innerHTML = '<div style=color:#ff4444>Error - Admin required</div>'; }
+}
+
+html = html.replace("if (screen === 'reports') showReport('sales');", "if (screen === 'reports') showReport('sales');
+    if (screen === 'settings') loadSettings();");
 </script>
 
+
+<!-- Checkout Modal -->
+<div id="checkoutModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;overflow-y:auto;">
+  <div style="background:#1a1a2e;padding:20px;width:100%;max-width:450px;margin:0 auto;border-radius:12px;">
+    <h2 style="margin-bottom:20px;text-align:center;">Checkout</h2>
+    <div id="checkoutItems" style="max-height:200px;overflow-y:auto;margin-bottom:16px;"></div>
+    <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Subtotal:</span><span id="chkSubtotal">$0</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8%):</span><span id="chkTax">$0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;border-top:1px solid #333;padding-top:8px;"><span>Total:</span><span id="chkTotal" style="color:#e94560;">$0</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button class="btn" onclick="processPayment('cash')">Cash</button>
+      <button class="btn" onclick="processPayment('card')">Card</button>
+      <button class="btn secondary" onclick="document.getElementById('checkoutModal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Kitchen Screen -->
+<div id="kitchen" class="screen" style="display:none;">
+  <div class="header"><h1>Kitchen</h1><button class="btn small" onclick="loadKitchenOrders()">Refresh</button></div>
+  <div id="kitchenGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+</div>
+
+<!-- Reports Screen -->
+<div id="reports" class="screen" style="display:none;">
+  <div class="header"><h1>Reports</h1></div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;">
+    <button class="btn small" onclick="showReport('sales')">Sales</button>
+    <button class="btn small" onclick="showReport('employees')">Employees</button>
+  </div>
+  <div id="reportContent"></div>
+</div>
+
+<!-- Settings Screen -->
+<div id="settings" class="screen" style="display:none;">
+  <div class="header"><h1>Settings</h1></div>
+  <div id="settingsContent"></div>
+</div>
 </body>
 </html>
