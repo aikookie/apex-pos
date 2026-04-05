@@ -1,0 +1,21 @@
+{
+  "name": "apex-pos",
+  "version": "1.0.0",
+  "main": "server.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.0",
+    "escpos": "^3.0.0-alpha.6",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "qrcode": "^1.5.4",
+    "sequelize": "^6.32.1",
+    "sqlite3": "^5.1.6",
+    "stripe": "^21.0.1"
+  }
+}

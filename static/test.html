@@ -1,0 +1,9 @@
+<h1>Testing staff load...</h1>
+<script>
+fetch('/api/staff')
+  .then(r => r.json())
+  .then(data => {
+    document.body.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+  })
+  .catch(e => document.body.innerHTML += '<p>Error: ' + e + '</p>');
+</script>

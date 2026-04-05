@@ -1,0 +1,24 @@
+◇ injecting env (0) from .env // tip: ⌘ enable debugging { debug: true }
+DB synced
+Seeded staff
+Seeded menu with modifiers
+Seeded tables
+Seeded employees
+Apex POS on 5001
+/root/.openclaw/workspace/apex-pos/server.js:681
+    const setting = await Setting.findByKey('printer_config');
+                                  ^
+
+TypeError: Setting.findByKey is not a function
+    at getPrinterSettings (/root/.openclaw/workspace/apex-pos/server.js:681:35)
+    at /root/.openclaw/workspace/apex-pos/server.js:704:26
+    at Layer.handle [as handle_request] (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/router/route.js:149:13)
+    at authMiddleware (/root/.openclaw/workspace/apex-pos/server.js:26:5)
+    at Layer.handle [as handle_request] (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/router/layer.js:95:5)
+    at next (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/router/layer.js:95:5)
+    at /root/.openclaw/workspace/apex-pos/node_modules/express/lib/router/index.js:284:15
+
+Node.js v22.22.0

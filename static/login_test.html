@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Login</title></head>
+<body>
+<h1>Testing API...</h1>
+<script>
+async function test() {
+  // Test staff load
+  const staffRes = await fetch('/api/staff');
+  const staff = await staffRes.json();
+  console.log('Staff:', staff);
+  document.body.innerHTML += '<p>Staff loaded: ' + staff.length + ' users</p>';
+  
+  // Test login
+  const loginRes = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({staffId: 1, pin: '1234'})
+  });
+  const loginData = await loginRes.json();
+  console.log('Login result:', loginData);
+  document.body.innerHTML += '<p>Login: ' + (loginData.token ? 'SUCCESS!' : 'FAILED') + '</p>';
+}
+test();
+</script>
+</body>
+</html>
