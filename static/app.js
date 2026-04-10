@@ -172,7 +172,7 @@ async function openModifierModal(itemId) {
       };
     });
     
-    $('#modifierModal').classList.add('show');
+    $('#itemModal').classList.add('show');
   } catch (e) {
     console.error('Load modifiers error:', e);
     // If no modifiers, just add directly
@@ -180,8 +180,8 @@ async function openModifierModal(itemId) {
   }
 }
 
-$('#cancelModifierBtn').onclick = () => $('#modifierModal').classList.remove('show');
-$('#closeModalBtn').onclick = () => $('#modifierModal').classList.remove('show');
+$('#cancelModifierBtn').onclick = () => $('#itemModal').classList.remove('show');
+$('#closeModalBtn').onclick = () => $('#itemModal').classList.remove('show');
 
 $('#addToCartBtn').onclick = () => {
   if (!currentMenuItem) return;
@@ -192,7 +192,7 @@ $('#addToCartBtn').onclick = () => {
   });
   
   addToCart({ ...currentMenuItem, modifiers: selected });
-  $('#modifierModal').classList.remove('show');
+  $('#itemModal').classList.remove('show');
 };
 
 function addToCart(item) {

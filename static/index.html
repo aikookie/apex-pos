@@ -52,7 +52,7 @@
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 16px; max-width: 340px; width: 100%;
     }
-    a.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key {
+    a.pin-key { touch-action: manipulation; display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key {
       width: 100%; height: 80px; border-radius: 16px;
       background: #16213e; border: none; color: #fff;
       font-size: 32px; font-weight: bold; cursor: pointer;
@@ -129,6 +129,35 @@
     }
     .modal-header { display: flex; justify-content: space-between; margin-bottom: 16px; }
     .modal-close { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+    
+    /* Modifier Options */
+    .modifier-option {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: #16213e;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.2s, border 0.2s;
+      border: 2px solid transparent;
+    }
+    .modifier-option:hover { background: #1f2b47; }
+    .modifier-option.selected {
+      border-color: #e94560;
+      background: #1f2b47;
+    }
+    .modifier-option input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+      cursor: pointer;
+    }
+    .modifier-option .mod-name { flex: 1; }
+    .modifier-option .mod-price { color: #e94560; font-weight: bold; }
+    .modifier-groups { margin-top: 16px; }
+    .modifier-group h4 { color: #ccc; margin-bottom: 8px; font-size: 14px; }
+    .modifier-group { margin-bottom: 16px; }
     
     /* Tables */
     .table-grid {
@@ -262,12 +291,6 @@
   <div class="order-list" id="orderList"></div>
 </div>
 
-<!-- Settings Screen -->
-<div id="settings" class="screen" style="display:none;">
-  <div class="header"><h1>Settings</h1></div>
-  <div id="settingsContent"></div>
-</div>
-
 <!-- Printer Settings Modal -->
 <div class="modal" id="printerModal">
   <div class="modal-content">
@@ -365,20 +388,6 @@
 <script>
 const API = '';
 let pin = '';
-
-// Hash-based PIN handler for iOS PWA
-window.onhashchange = function() {
-  var hash = window.location.hash;
-  if (hash.startsWith('#press-')) {
-    var num = hash.replace('#press-', '');
-    window.location.hash = '';
-    if (num === 'C') { pin = ''; }
-    else if (num === 'E') { verifyPin(); }
-    else if (num && pin.length < 4) { pin += num; }
-    updatePinDisplay();
-  }
-};
-
 let cart = [];
 let menuItems = [];
 let categories = [];
@@ -431,7 +440,6 @@ async function verifyPin() {
       loadMenu();
       loadTables();
       loadOrders();
-
     } else {
       pin = '';
       updatePinDisplay();
@@ -516,19 +524,15 @@ function renderMenu() {
     return;
   }
   
+  const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
   container.innerHTML = items.map(item => `
     <div class="menu-item" data-id="${item.id}">
       <h3>${item.name}</h3>
       <div class="price">$${item.price.toFixed(2)}</div>
-      <div class="stock">Stock: ${item.stock}</div>
+      ${stockEnabled && item.stock != null ? '<div class="stock">Stock: ' + item.stock + '</div>' : ''}
       ${item.spicy ? '<div class="spicy">🌶️ Spicy</div>' : ''}
     </div>
   `).join('');
-  
-  container.querySelectorAll('.menu-item').forEach(el => {
-    el.addEventListener('click', () => openItemModal(parseInt(el.dataset.id)));
-  });
-}
   
   container.querySelectorAll('.menu-item').forEach(el => {
     el.addEventListener('click', () => openItemModal(parseInt(el.dataset.id)));
@@ -541,6 +545,8 @@ async function openItemModal(itemId) {
   const item = menuItems.find(i => i.id === itemId);
   if (!item) return;
   
+  // Reset modal state
+  document.getElementById('itemModal').style.display = 'block';
   itemModifiers = [];
   
   // Fetch modifiers from backend
@@ -587,7 +593,7 @@ async function openItemModal(itemId) {
       Add to Cart
     </button>
   `;
-  document.getElementById('itemModal').classList.add('active');
+  document.getElementById('itemModal').style.display = 'block';
 }
 
 function toggleItemModifier(modId, modName, modPrice) {
@@ -616,9 +622,12 @@ function addItemToCart(itemId) {
 
 function closeModal() {
   document.getElementById('itemModal').classList.remove('active');
+  document.getElementById('itemModal').style.display = 'none';
 }
 
-document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('closeModal').onclick = function() {
+  document.getElementById('itemModal').style.display = 'none';
+};
 
 // Cart
 function addToCart(itemId, qty = 1, remarks = '') {
@@ -630,11 +639,12 @@ function addToCart(itemId, qty = 1, remarks = '') {
   
   if (existing) {
     existing.qty += qty;
+    existing.modifiers = itemModifiers.length ? itemModifiers : (existing.modifiers || []);
     if (existing.qty <= 0) {
       cart = cart.filter(c => !(c.itemId === itemId && c.remarks === remarks));
     }
   } else if (qty > 0) {
-    cart.push({ itemId, qty, price: item.price, name: item.name, remarks });
+    cart.push({ itemId, qty, price: item.price, name: item.name, modifiers: itemModifiers, remarks });
   }
   updateCartUI();
   closeModal();
@@ -713,7 +723,8 @@ function processCheckout() {
     items: cart.map(c => ({ 
       menuItemId: c.itemId, 
       qty: c.qty, 
-      unitPrice: c.price,
+      price: c.price,
+      modifiers: c.modifiers || [],
       remarks: c.remarks || null
     })),
     subtotal: total,
@@ -1200,6 +1211,10 @@ async function showReport(type) {
 
 async function loadSettings() {
   const c = document.getElementById('settingsContent');
+  if (!c) { 
+    alert('Settings container not found!'); 
+    return; 
+  }
   c.innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;">
       <button class="btn small active" onclick="showSettingsTab('menu', this)">Menu Items</button>
@@ -1207,7 +1222,7 @@ async function loadSettings() {
       <button class="btn small" onclick="showSettingsTab('stock', this)">Stock</button>
       <button class="btn small" onclick="showSettingsTab('system', this)">System</button>
     </div>
-    <div id="settingsTabContent"></div>
+    <div id="settingsTabContent">Loading...</div>
   `;
   showSettingsTab('menu', null);
 }
@@ -1219,7 +1234,7 @@ async function showSettingsTab(tab, btn) {
   
   if (tab === 'menu') {
     try {
-      const res = await fetch(API + '/api/menu', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+      const res = await fetch(API + '/api/menu');
       const items = await res.json();
       const catRes = await fetch(API + '/api/menu/categories');
       const categories = await catRes.json();
@@ -1259,7 +1274,10 @@ async function showSettingsTab(tab, btn) {
               ${mods.map(m => `
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #333;">
                   <span>${m.name} ${m.price ? '($' + m.price.toFixed(2) + ')' : ''}</span>
-                  <button class="btn small" style="background:#ff4444;" onclick="deleteModifier(${m.id})">×</button>
+                  <div style="display:flex;gap:4px;">
+                    <button class="btn small" onclick="editModifier(${m.id}, '${m.name}', ${m.price}, '${m.category || ''}')">Edit</button>
+                    <button class="btn small" style="background:#ff4444;" onclick="deleteModifier(${m.id})">×</button>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -1269,7 +1287,7 @@ async function showSettingsTab(tab, btn) {
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading modifiers</div>'; }
   } else if (tab === 'stock') {
     try {
-      const res = await fetch(API + '/api/menu', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+      const res = await fetch(API + '/api/menu');
       const items = await res.json();
       content.innerHTML = `
         <div style="display:grid;gap:8px;">
@@ -1290,49 +1308,27 @@ async function showSettingsTab(tab, btn) {
       `;
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
   } else if (tab === 'system') {
-    try {
-      let stockEnabled = false;
-      try {
-        const stockRes = await fetch(API + '/api/settings/stock_enabled', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
-        const stockSetting = await stockRes.json();
-        stockEnabled = stockSetting.value === 'true';
-      } catch(e) { stockEnabled = false; }
-      
-      content.innerHTML = `
-        <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-weight:bold;">Stock Tracking</div>
-            <div style="color:#888;font-size:12px;">Enable/disable inventory tracking</div>
-          </div>
-          <label style="position:relative;width:50px;height:26px;">
-            <input type="checkbox" id="stockToggle" ${stockEnabled ? 'checked' : ''} style="opacity:0;width:0;height:0;">
-            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${stockEnabled ? '#4ade80' : '#333'};border-radius:26px;transition:0.3s;">
-              <span style="position:absolute;height:20px;width:20px;left:${stockEnabled ? '27px' : '3px'};bottom:3px;background:#fff;border-radius:50%;transition:0.3s;"></span>
-            </span>
-          </label>
+    const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
+    content.innerHTML = `
+      <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:bold;">Stock Tracking</div>
+          <div style="color:#888;font-size:12px;">Show stock in menu</div>
         </div>
-        <button class="btn" style="width:100%;margin-bottom:12px;" id="testApiBtn">Test API</button>
-        <button class="btn secondary" style="width:100%;margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
-        <button class="btn" style="width:100%;margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
-        <button class="btn" style="width:100%;margin-bottom:12px;" id="logoutBtn">Logout</button>
-        <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
-      `;
-      
-      setTimeout(() => {
-        document.getElementById('stockToggle')?.addEventListener('change', async (e) => {
-          await fetch(API + '/api/settings/stock_enabled', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
-            body: JSON.stringify({ value: e.target.checked ? 'true' : 'false' })
-          });
-          alert('Stock tracking ' + (e.target.checked ? 'enabled' : 'disabled'));
-        });
-        document.getElementById('logoutBtn')?.addEventListener('click', () => { localStorage.clear(); location.reload(); });
-        document.getElementById('testApiBtn')?.addEventListener('click', async () => { alert('API working!'); });
-        document.getElementById('printBtn')?.addEventListener('click', async () => { alert('No recent receipt'); });
-        document.getElementById('printerSettingsBtn')?.addEventListener('click', async () => { document.getElementById('printerModal').style.display = 'block'; });
-      }, 100);
-    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading system settings - Admin required</div>'; }
+        <button class="btn small" onclick="toggleStock()" style="background:${stockEnabled ? '#4ade80' : '#333'};">${stockEnabled ? 'ON' : 'OFF'}</button>
+      </div>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="testApiBtn">Test API</button>
+      <button class="btn secondary" style="width:100%;margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="logoutBtn">Logout</button>
+      <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
+    `;
+    setTimeout(() => {
+      document.getElementById('logoutBtn')?.addEventListener('click', () => { localStorage.clear(); location.reload(); });
+      document.getElementById('testApiBtn')?.addEventListener('click', async () => { alert('API working!'); });
+      document.getElementById('printBtn')?.addEventListener('click', async () => { alert('No recent receipt'); });
+      document.getElementById('printerSettingsBtn')?.addEventListener('click', async () => { document.getElementById('printerModal').style.display = 'block'; });
+    }, 100);
   }
 }
 
@@ -1343,65 +1339,200 @@ async function showAddMenuItemModal() {
   const html = `
     <div style="display:grid;gap:12px;">
       <input type="text" id="newItemName" placeholder="Item Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
-      <select id="newItemCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <select id="newItemCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" onchange="toggleNewCategory(this)">
+        <option value="">Select Category</option>
         ${catOptions}
-        <option value="__new__">+ New Category</option>
       </select>
+      <input type="text" id="newItemCategoryCustom" placeholder="Type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+      <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('newItemCategory').style.display='none';document.getElementById('newItemCategoryCustom').style.display='block';this.style.display='none';document.getElementById('newItemCategoryCustom').focus();">(+) Add new category</label>
       <input type="number" id="newItemPrice" placeholder="Price" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
       <input type="text" id="newItemDesc" placeholder="Description" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
       <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemPopular"> Popular</label>
       <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemSpicy"> Spicy</label>
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveNewMenuItem()">Save</button>
+      </div>
     </div>
   `;
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('modalTitle').textContent = 'Add Menu Item';
   document.getElementById('itemModal').style.display = 'block';
+}
+
+async function saveNewMenuItem() {
+  const name = document.getElementById('newItemName').value;
+  if (!name) return alert('Name required');
+  const categorySelect = document.getElementById('newItemCategory');
+  const categoryCustom = document.getElementById('newItemCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
+  const price = parseFloat(document.getElementById('newItemPrice').value) || 0;
+  const description = document.getElementById('newItemDesc').value;
+  const popular = document.getElementById('newItemPopular').checked;
+  const spicy = document.getElementById('newItemSpicy').checked;
   
-  document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+  await fetch(API + '/api/menu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price, description, popular, spicy })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('menu', null);
 }
 
 async function showAddModifierModal() {
-  const catRes = await fetch(API + '/api/menu/categories');
-  const categories = await catRes.json();
-  const catOptions = categories.length ? categories.map(c => `<option value="${c}">${c}</option>`).join('') : '<option value="Extras">Extras</option><option value="Size">Size</option>';
+  let categories = [];
+  try {
+    const catRes = await fetch(API + '/api/modifiers/categories');
+    categories = await catRes.json();
+  } catch(e) { console.error('Error loading categories:', e); }
+  const catOptions = categories.map(c => `<option value="${c}">${c}</option>`).join('');
   const html = `
     <div style="display:grid;gap:12px;">
       <input type="text" id="newModName" placeholder="Modifier Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <label style="color:#888;font-size:12px;">Category</label>
       <select id="newModCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <option value="">Select Category</option>
         ${catOptions}
-        <option value="Size">Size</option>
-        <option value="Extras">Extras</option>
-        <option value="Spice Level">Spice Level</option>
-        <option value="Toppings">Toppings</option>
       </select>
+      <input type="text" id="newModCategoryCustom" placeholder="Or type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+      <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('newModCategory').style.display='none';document.getElementById('newModCategoryCustom').style.display='block';this.style.display='none';document.getElementById('newModCategoryCustom').focus();">(+) Add new category</label>
       <input type="number" id="newModPrice" placeholder="Additional Price (0 for free)" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveNewModifier()">Save</button>
+      </div>
     </div>
   `;
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('modalTitle').textContent = 'Add Modifier';
   document.getElementById('itemModal').style.display = 'block';
+}
+
+async function saveNewModifier() {
+  const name = document.getElementById('newModName').value;
+  if (!name) return alert('Name required');
+  const categorySelect = document.getElementById('newModCategory');
+  const categoryCustom = document.getElementById('newModCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
+  const price = parseFloat(document.getElementById('newModPrice').value) || 0;
   
-  document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+  await fetch(API + '/api/modifiers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('modifiers', null);
+  // Reload to refresh datalist
+  setTimeout(() => location.reload(), 500);
+}
+
+async function editModifier(id, name, price, category) {
+  let categories = [];
+  try {
+    const catRes = await fetch(API + '/api/modifiers/categories');
+    categories = await catRes.json();
+  } catch(e) { console.error('Error loading categories:', e); }
+  const catOptions = categories.map(c => `<option value="${c}" ${c === category ? 'selected' : ''}>${c}</option>`).join('');
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="hidden" id="editModId" value="${id}">
+      <input type="text" id="editModName" placeholder="Modifier Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" value="${name}">
+      <select id="editModCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <option value="">Select Category</option>
+        ${catOptions}
+      </select>
+      <input type="text" id="editModCategoryCustom" placeholder="Or type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+      <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('editModCategory').style.display='none';document.getElementById('editModCategoryCustom').style.display='block';this.style.display='none';document.getElementById('editModCategoryCustom').focus();">(+) Add new category</label>
+      <input type="number" id="editModPrice" placeholder="Additional Price" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" value="${price}">
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveEditModifier()">Save</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Edit Modifier';
+  document.getElementById('itemModal').style.display = 'block';
+}
+
+function closeModifierModal() {
+  document.getElementById('itemModal').style.display = 'none';
+}
+
+async function saveEditModifier() {
+  const id = document.getElementById('editModId').value;
+  const name = document.getElementById('editModName').value;
+  if (!name) return alert('Name required');
+  const categorySelect = document.getElementById('editModCategory');
+  const categoryCustom = document.getElementById('editModCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
+  const price = parseFloat(document.getElementById('editModPrice').value) || 0;
+  await fetch(API + '/api/modifiers/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('modifiers', null);
+}
+
+function toggleStock() {
+  const current = localStorage.getItem('stock_enabled');
+  localStorage.setItem('stock_enabled', current === 'true' ? 'false' : 'true');
+  showSettingsTab('system', null);
 }
 
 async function editMenuItem(id) {
   try {
     const res = await fetch(API + '/api/menu/' + id, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
     const item = await res.json();
+    // Get menu categories AND modifier categories (combine them)
     const catRes = await fetch(API + '/api/menu/categories');
-    const categories = await catRes.json();
-    const catOptions = categories.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`).join('');
+    const menuCats = await catRes.json();
+    let modCats = [];
+    try {
+      const modCatRes = await fetch(API + '/api/modifiers/categories');
+      modCats = await modCatRes.json();
+    } catch(e) {}
+    const allCats = [...new Set([...menuCats, ...modCats])];
+    const catOptions = allCats.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`).join('');
+    
+    // Load existing modifiers for this item
+    const modRes = await fetch(API + '/api/menu/' + id + '/modifiers');
+    const existingMods = await modRes.json();
     
     const html = `
       <div style="display:grid;gap:12px;">
         <input type="text" id="editItemName" value="${item.name}" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
         <select id="editItemCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+          <option value="">Select Category</option>
           ${catOptions}
         </select>
+        <input type="text" id="editItemCategoryCustom" placeholder="Or type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+        <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('editItemCategory').style.display='none';document.getElementById('editItemCategoryCustom').style.display='block';this.style.display='none';document.getElementById('editItemCategoryCustom').focus();">(+) Add new category</label>
         <input type="number" id="editItemPrice" value="${item.price}" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
         <input type="text" id="editItemDesc" value="${item.description || ''}" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
         <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="editItemPopular" ${item.popular ? 'checked' : ''}> Popular</label>
         <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="editItemSpicy" ${item.spicy ? 'checked' : ''}> Spicy</label>
+        
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid #333;">
+          <div style="font-weight:bold;margin-bottom:8px;color:#e94560;">MODIFIERS FOR THIS ITEM</div>
+          <div id="editItemModifiersList" style="display:grid;gap:8px;max-height:200px;overflow-y:auto;">
+            ${existingMods.length ? existingMods.map(m => `
+              <div style="display:flex;justify-content:space-between;align-items:center;background:#16213e;padding:8px;border-radius:4px;">
+                <span>${m.name} ${m.price ? '($'+m.price.toFixed(2)+')' : ''}</span>
+                <button class="btn small" style="background:#ff4444;" onclick="removeModifierFromItem(${m.id}, ${id})">×</button>
+              </div>
+            `).join('') : '<div style="color:#888;">No modifiers attached</div>'}
+          </div>
+          <button class="btn small" style="margin-top:8px;width:100%;" onclick="showAddModifierToItemModal(${id})">+ Add Modifier</button>
+        </div>
+        
         <button class="btn" onclick="saveMenuItem(${id})">Save Changes</button>
       </div>
     `;
@@ -1412,10 +1543,131 @@ async function editMenuItem(id) {
   } catch(e) { alert('Error loading item'); }
 }
 
+async function removeModifierFromItem(modifierId, itemId) {
+  if (!confirm('Remove this modifier from the item?')) return;
+  try {
+    await fetch(API + '/api/modifiers/' + modifierId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }
+    });
+    editMenuItem(itemId); // Refresh the modal
+  } catch(e) { alert('Error removing modifier'); }
+}
+
+async function showAddModifierToItemModal(itemId) {
+  // Fetch all existing modifiers to show in dropdown
+  let allModifiers = [];
+  try {
+    const modRes = await fetch(API + '/api/modifiers');
+    allModifiers = await modRes.json();
+  } catch(e) { console.error('Error loading modifiers:', e); }
+  
+  // Get unique modifiers only (by name), grouped by category
+  const uniqueByName = {};
+  allModifiers.forEach(m => {
+    if (!uniqueByName[m.name] || m.category === 'size' || m.category === 'sweetness') {
+      uniqueByName[m.name] = m;
+    }
+  });
+  const uniqueMods = Object.values(uniqueByName);
+  
+  // Group by category
+  const byCategory = {};
+  uniqueMods.forEach(m => {
+    const cat = m.category || 'Other';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(m);
+  });
+  
+  // Build optgroup dropdown
+  let modOptions = '';
+  Object.keys(byCategory).sort().forEach(cat => {
+    modOptions += `<optgroup label="${cat.toUpperCase()}">`;
+    byCategory[cat].forEach(m => {
+      const priceStr = m.price > 0 ? ' +$' + m.price.toFixed(2) : '';
+      modOptions += `<option value="${m.id}" data-name="${m.name}" data-price="${m.price}" data-cat="${cat}">${m.name}${priceStr}</option>`;
+    });
+    modOptions += `</optgroup>`;
+  });
+  
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="hidden" id="addModItemId" value="${itemId}">
+      
+      <div style="margin-bottom:8px;"><strong>Select Existing Modifier</strong></div>
+      <select id="existingModSelect" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" onchange="updateNewModFields()">
+        <option value="">-- Select a modifier --</option>
+        ${modOptions}
+      </select>
+      <button class="btn" style="background:#4ade80;width:100%;" onclick="attachExistingModifier(${itemId})">Add Selected</button>
+      
+      <div style="margin:16px 0;text-align:center;color:#888;">— OR CREATE NEW —</div>
+      
+      <input type="text" id="newModName" placeholder="New Modifier Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <input type="text" id="newModCategory" list="catOptsNew" placeholder="Category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <datalist id="catOptsNew">
+        <option value="Size"><option value="Sweetness"><option value="Ice"><option value="Spice"><option value="Extras"><option value="Exclude">
+      </datalist>
+      <input type="number" id="newModPrice" placeholder="Additional Price (0 for free)" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveModifierToItem()">Create & Add</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Add Modifier to Item';
+  document.getElementById('itemModal').style.display = 'block';
+}
+
+async function attachExistingModifier(itemId) {
+  const select = document.getElementById('existingModSelect');
+  const opt = select.options[select.selectedIndex];
+  if (!opt.value) return alert('Select a modifier first');
+  
+  const modId = opt.value;
+  await fetch(API + '/api/menu/' + itemId + '/modifiers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ 
+      name: opt.dataset.name, 
+      category: opt.dataset.cat, 
+      price: parseFloat(opt.dataset.price) || 0 
+    })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  editMenuItem(itemId);
+}
+
+function updateNewModFields() {
+  // Optional: auto-fill new fields when selecting existing modifier
+}
+
+async function saveModifierToItem() {
+  const itemId = document.getElementById('addModItemId').value;
+  const name = document.getElementById('newModName').value;
+  if (!name) return alert('Name required');
+  const category = document.getElementById('newModCategory').value;
+  const price = parseFloat(document.getElementById('newModPrice').value) || 0;
+  
+  await fetch(API + '/api/menu/' + itemId + '/modifiers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  editMenuItem(itemId);
+  setTimeout(() => location.reload(), 500);
+}
+
 async function saveMenuItem(id) {
+  const categorySelect = document.getElementById('editItemCategory');
+  const categoryCustom = document.getElementById('editItemCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
   const data = {
     name: document.getElementById('editItemName').value,
-    category: document.getElementById('editItemCategory').value,
+    category: category,
     price: parseFloat(document.getElementById('editItemPrice').value),
     description: document.getElementById('editItemDesc').value,
     popular: document.getElementById('editItemPopular').checked,
@@ -1494,6 +1746,12 @@ async function deleteModifier(id) {
     <button class="btn small" onclick="showReport('employees')">Employees</button>
   </div>
   <div id="reportContent"></div>
+</div>
+
+<!-- Settings Screen -->
+<div id="settings" class="screen" style="display:none;">
+  <div class="header"><h1>Settings</h1></div>
+  <div id="settingsContent"></div>
 </div>
 </body>
 </html>
