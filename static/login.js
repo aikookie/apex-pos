@@ -1,16 +1,23 @@
 // Simple PIN Login - Robust Version
 let pin = '';
 
-function handlePin(num) {
-  if (num === 'C') {
-    pin = '';
-  } else if (num === 'E') {
-    verifyPin();
-  } else if (num && pin.length < 4) {
-    pin += num;
-  }
-  updatePinDisplay();
-}
+document.addEventListener('DOMContentLoaded', function() {
+  // Add click handlers to PIN buttons - prevent default on <a> tags
+  document.querySelectorAll('.pin-key').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const num = btn.dataset.num;
+      if (num === 'C') {
+        pin = '';
+      } else if (num === 'E') {
+        verifyPin();
+      } else if (num && pin.length < 4) {
+        pin += num;
+      }
+      updatePinDisplay();
+    });
+  });
+});
 
 function updatePinDisplay() {
   for (let i = 0; i < 4; i++) {
