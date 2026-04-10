@@ -79,7 +79,10 @@ function handlePin(val) {
   
   if (val === 'E') {
     // Enter - attempt login
-    const staffId = $('#staffSelect')?.value || '1';
+    const staffSelect = $('#staffSelect');
+    let staffId = staffSelect?.value;
+    if (!staffId || staffId === '') staffId = '1';
+    console.log('Login attempt - staffId:', staffId, 'pin:', currentPin);
     if (currentPin.length > 0) {
       login(staffId, currentPin).then(() => {
         currentPin = '';
