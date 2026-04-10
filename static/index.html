@@ -389,67 +389,7 @@
 </div>
 
 <script>
-const API = '';
-let pin = '';
-let cart = [];
-let cartDiscount = { type: 'percent', value: 0 };
-let menuItems = [];
-let categories = [];
-let tables = [];
-let orders = [];
-let selectedCategory = 'all';
-
-// Auth
-function handlePin(num) {
-  if (num === 'C') {
-    pin = '';
-  } else if (num === 'E') {
-    verifyPin();
-  } else if (num !== undefined && pin.length < 4) {
-    pin += num;
-  }
-  updatePinDisplay();
-}
-
-function updatePinDisplay() {
-  for (let i = 0; i < 4; i++) {
-    document.getElementById('dot' + i).classList.toggle('filled', i < pin.length);
-  }
-}
-
-async function verifyPin() {
-  if (pin.length !== 4) return;
-  try {
-    // Try each staff ID until one works
-    let staff = null;
-    for (let staffId = 1; staffId <= 10; staffId++) {
-      const res = await fetch(API + '/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staffId, pin })
-      });
-      const data = await res.json();
-      if (data.token) {
-        staff = data;
-        localStorage.setItem('apex_token', data.token);
-        break;
-      }
-    }
-    if (staff) {
-      showScreen('main');
-      document.getElementById('bottomNav').style.display = 'flex';
-      loadMenu();
-      loadTables();
-      loadOrders();
-    } else {
-      pin = '';
-      updatePinDisplay();
-    }
-  } catch {
-    pin = '';
-    updatePinDisplay();
-  }
-}
+// All state and functions moved to external app.js
 
 function showScreen(id) {
   // Hide all screens
