@@ -16,15 +16,21 @@
   <title>Apex POS</title>
   <script src="/app.js"></script>
 <script>
-function testLogin() {
-  alert('test');
-  fetch('/api/auth/login', {
+async function testLogin() {
+  const r = await fetch('/api/auth/login', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({staffId: 1, pin: '1234'})
-  }).then(r => r.json()).then(d => {
-    alert('Result: ' + JSON.stringify(d));
-  }).catch(e => alert('Error: ' + e));
+  });
+  const d = await r.json();
+  if (d.token) {
+    localStorage.setItem('apex_token', d.token);
+    hide($('#login'));
+    show($('#main'));
+    loadMenu();
+  } else {
+    alert('Login failed');
+  }
 }
 </script>
   <style>
