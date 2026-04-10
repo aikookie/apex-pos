@@ -658,8 +658,8 @@ async function init() {
 }
 
 function showLoginSuccess() {
-  hide($('#loginScreen'));
-  show($('#mainApp'));
+  hide($('#login'));
+  show($('#main'));
   loadMenu();
   loadTables();
 }
