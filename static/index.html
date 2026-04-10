@@ -16,6 +16,14 @@
   <title>Apex POS</title>
   <script src="/app.js"></script>
 <script>
+async function loadMenu() {
+  const token = localStorage.getItem('apex_token');
+  const r = await fetch('/api/menu', { headers: { Authorization: 'Bearer ' + token }});
+  const items = await r.json();
+  const grid = document.getElementById('menuGrid');
+  grid.innerHTML = items.map(i => `<div style="padding:12px;background:#16213e;border-radius:8px;">${i.name} - $${(i.price/100).toFixed(2)}</div>`).join('');
+}
+
 async function testLogin() {
   const r = await fetch('/api/auth/login', {
     method: 'POST',
@@ -27,6 +35,7 @@ async function testLogin() {
     localStorage.setItem('apex_token', d.token);
     document.getElementById('login').style.display = 'none';
     document.getElementById('main').style.display = 'block';
+    loadMenu();
   } else {
     alert('Login failed');
   }
