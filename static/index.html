@@ -25,9 +25,8 @@ async function testLogin() {
   const d = await r.json();
   if (d.token) {
     localStorage.setItem('apex_token', d.token);
-    hide($('#login'));
-    show($('#main'));
-    loadMenu();
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
   } else {
     alert('Login failed');
   }
