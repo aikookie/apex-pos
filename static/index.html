@@ -213,17 +213,17 @@
     <div class="pin-dot" id="dot3"></div>
   </div>
   <div class="pin-keypad">
-    <a href="#press-1" class="pin-key">1</a>
-    <a href="#press-2" class="pin-key">2</a>
-    <a href="#press-3" class="pin-key">3</a>
-    <a href="#press-4" class="pin-key">4</a>
-    <a href="#press-5" class="pin-key">5</a>
-    <a href="#press-6" class="pin-key">6</a>
-    <a href="#press-7" class="pin-key">7</a>
-    <a href="#press-8" class="pin-key">8</a>
-    <a href="#press-9" class="pin-key">9</a>
+    <a href="#press-1" onclick="handlePin(1)" class="pin-key">1</a>
+    <a href="#press-2" onclick="handlePin('2')" class="pin-key">2</a>
+    <a href="#press-3" onclick="handlePin('3')" class="pin-key">3</a>
+    <a href="#press-4" onclick="handlePin('4')" class="pin-key">4</a>
+    <a href="#press-5" onclick="handlePin('5')" class="pin-key">5</a>
+    <a href="#press-6" onclick="handlePin('6')" class="pin-key">6</a>
+    <a href="#press-7" onclick="handlePin('7')" class="pin-key">7</a>
+    <a href="#press-8" onclick="handlePin('8')" class="pin-key">8</a>
+    <a href="#press-9" onclick="handlePin('9')" class="pin-key">9</a>
     <a href="#press-C" class="pin-key clear">C</a>
-    <a href="#press-0" class="pin-key">0</a>
+    <a href="#press-0" onclick="handlePin('0')" class="pin-key">0</a>
     <a href="#press-E" class="pin-key enter">↵</a>
   </div>
 </div>
@@ -402,6 +402,17 @@ document.querySelectorAll('.pin-key').forEach(btn => {
     updatePinDisplay();
   });
 });
+
+function handlePin(num) {
+  if (num === 'C') {
+    pin = '';
+  } else if (num === 'E') {
+    verifyPin();
+  } else if (num && pin.length < 4) {
+    pin += num;
+  }
+  updatePinDisplay();
+}
 
 function updatePinDisplay() {
   for (let i = 0; i < 4; i++) {
