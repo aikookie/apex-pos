@@ -14,7 +14,6 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Apex POS</title>
-  <script src="/login.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -398,7 +397,8 @@ let selectedCategory = 'all';
 
 // Auth
 document.querySelectorAll('.pin-key').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
     const num = btn.dataset.num;
     if (num === 'C') {
       pin = '';

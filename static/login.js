@@ -1,9 +1,15 @@
-// Simple PIN Login - Robust Version
+// Simple PIN Login - Override the inline handler
 let pin = '';
 
-// Run after page fully loads
-setTimeout(function() {
-  // Add click handlers to PIN buttons - prevent default on <a> tags
+// Wait for inline script to run first, then override
+window.onload = function() {
+  // Remove old handlers
+  document.querySelectorAll('.pin-key').forEach(btn => {
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+  });
+  
+  // Add new handlers
   document.querySelectorAll('.pin-key').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -18,7 +24,7 @@ setTimeout(function() {
       updatePinDisplay();
     });
   });
-}, 500);
+};
 
 function updatePinDisplay() {
   for (let i = 0; i < 4; i++) {
