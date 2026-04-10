@@ -1,5 +1,4 @@
 // Apex POS - Full Frontend Application
-console.log('Apex POS app.js loading...');
 const API = '';  // Uses relative URLs (same origin)
 
 // ============ State ============
@@ -66,64 +65,6 @@ function checkAuth() {
     return true;
   }
   return false;
-}
-
-// ============ PIN Pad ============
-let currentPin = '';
-
-function handlePin(val) {
-  console.log('handlePin called:', val);
-  if (val === 'C') {
-    currentPin = '';
-    updatePinDisplay();
-    return;
-  }
-  
-  if (val === 'E') {
-    // Enter - attempt login
-    const staffSelect = $('#staffSelect');
-    let staffId = staffSelect?.value;
-    if (!staffId || staffId === '') staffId = '1';
-    console.log('Login attempt - staffId:', staffId, 'pin:', currentPin);
-    if (currentPin.length > 0) {
-      login(staffId, currentPin).then(() => {
-        currentPin = '';
-        updatePinDisplay();
-      }).catch(e => {
-        $('#loginError').textContent = e.message || 'Login failed';
-        $('#loginError').classList.add('show');
-        currentPin = '';
-        updatePinDisplay();
-      });
-    }
-    return;
-  }
-  
-  if (currentPin.length < 4) {
-    currentPin += val;
-    updatePinDisplay();
-  }
-}
-
-function updatePinDisplay() {
-  for (let i = 0; i < 4; i++) {
-    const dot = $(`#dot${i}`);
-    if (dot) {
-      dot.classList.toggle('filled', i < currentPin.length);
-    }
-  }
-}
-
-// Test login function
-async function testLogin() {
-  console.log('Test login clicked');
-  try {
-    await login('1', '1234');
-    showLoginSuccess();
-  } catch(e) {
-    console.error('Test login failed:', e);
-    alert('Login failed: ' + e.message);
-  }
 }
 
 // ============ Views ============
@@ -231,7 +172,7 @@ async function openModifierModal(itemId) {
       };
     });
     
-    $('#itemModal').classList.add('show');
+    $('#modifierModal').classList.add('show');
   } catch (e) {
     console.error('Load modifiers error:', e);
     // If no modifiers, just add directly
@@ -239,8 +180,8 @@ async function openModifierModal(itemId) {
   }
 }
 
-$('#cancelModifierBtn').onclick = () => $('#itemModal').classList.remove('show');
-$('#closeModalBtn').onclick = () => $('#itemModal').classList.remove('show');
+$('#cancelModifierBtn').onclick = () => $('#modifierModal').classList.remove('show');
+$('#closeModalBtn').onclick = () => $('#modifierModal').classList.remove('show');
 
 $('#addToCartBtn').onclick = () => {
   if (!currentMenuItem) return;
@@ -251,7 +192,7 @@ $('#addToCartBtn').onclick = () => {
   });
   
   addToCart({ ...currentMenuItem, modifiers: selected });
-  $('#itemModal').classList.remove('show');
+  $('#modifierModal').classList.remove('show');
 };
 
 function addToCart(item) {
@@ -270,12 +211,11 @@ function updateCartUI() {
     return;
   }
   
-  let subtotal = 0;
+  let total = 0;
   container.innerHTML = state.cart.map((item, idx) => {
-    const qty = item.qty || 1;
-    const modPrice = item.modifiers ? item.modifiers.reduce((s, m) => s + (m.price || 0), 0) : 0;
-    const itemTotal = (item.price + modPrice) * qty;
-    subtotal += itemTotal;
+    const modPrice = item.modifiers ? item.modifiers.reduce((s, m) => s + m.price, 0) : 0;
+    const itemTotal = (item.price + modPrice);
+    total += itemTotal;
     
     return `
       <div class="cart-item">
@@ -285,29 +225,23 @@ function updateCartUI() {
         </div>
         <div class="cart-item-qty">
           <button class="btn btn-secondary" onclick="changeQty(${idx}, -1)">-</button>
-          <span>${qty}</span>
+          <span>${item.qty || 1}</span>
           <button class="btn btn-secondary" onclick="changeQty(${idx}, 1)">+</button>
-          <span style="margin-left:auto;font-weight:600;">$${fmtMoney(itemTotal)}</span>
+          <span style="margin-left:auto;font-weight:600;">$${fmtMoney(itemTotal * (item.qty || 1))}</span>
         </div>
-        ${item.modifiers && item.modifiers.length ? `<div class="cart-item-mods">${item.modifiers.map(m => m.price > 0 ? m.name + ' (+$' + fmtMoney(m.price) + ')' : m.name).join(', ')}</div>` : ''}
+        ${item.modifiers && item.modifiers.length ? `<div class="cart-item-mods">${item.modifiers.map(m => m.name).join(', ')}</div>` : ''}
       </div>
     `;
   }).join('');
   
-  // Calculate discount and tax
-  let discountAmount = 0;
+  // Apply discount
   if (state.discount.value > 0) {
     if (state.discount.type === 'percent') {
-      discountAmount = subtotal * (state.discount.value / 100);
+      total = total * (1 - state.discount.value / 100);
     } else {
-      discountAmount = state.discount.value * 100;
+      total = total - (state.discount.value * 100);
     }
   }
-  
-  const taxableAmount = subtotal - discountAmount;
-  const taxRate = 8.25;
-  const tax = Math.round(taxableAmount * (taxRate / 100));
-  const total = taxableAmount + tax;
   
   $('#cartTotal').textContent = fmtMoney(Math.max(0, total));
 }
@@ -339,49 +273,32 @@ $('#checkoutBtn').onclick = () => {
 };
 
 async function openCheckoutModal() {
-  // Calculate subtotal (before discount)
-  let subtotal = state.cart.reduce((s, item) => {
-    const modPrice = item.modifiers ? item.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+  let total = state.cart.reduce((s, item) => {
+    const modPrice = item.modifiers ? item.modifiers.reduce((m, x) => m + x.price, 0) : 0;
     return s + (item.price + modPrice) * (item.qty || 1);
   }, 0);
   
-  // Calculate discount amount
-  let discountAmount = 0;
-  let discountPercent = 0;
   if (state.discount.value > 0) {
     if (state.discount.type === 'percent') {
-      discountPercent = state.discount.value;
-      discountAmount = subtotal * (state.discount.value / 100);
+      total = total * (1 - state.discount.value / 100);
     } else {
-      discountAmount = state.discount.value * 100;
+      total = total - (state.discount.value * 100);
     }
   }
-  
-  const taxableAmount = subtotal - discountAmount;
-  const taxRate = 8.25; // Default tax rate
-  const tax = Math.round(taxableAmount * (taxRate / 100));
-  const total = taxableAmount + tax;
   
   const body = `
     <div style="padding:1rem;">
       <h3>Order Summary</h3>
       <p><strong>Table:</strong> ${state.tables.find(t => t.id === state.selectedTable)?.number || state.selectedTable}</p>
       <p><strong>Items:</strong> ${state.cart.length}</p>
-      <hr style="margin:0.75rem 0;border-color:#333;">
-      <p style="display:flex;justify-content:space-between;"><span>Subtotal:</span> <span>$${fmtMoney(subtotal)}</span></p>
-      ${discountAmount > 0 ? `
-        <p style="display:flex;justify-content:space-between;color:#ef4444;">
-          <span>Discount (${discountPercent > 0 ? discountPercent + '%' : '$' + fmtMoney(discountAmount)}):</span> 
-          <span>-$${fmtMoney(discountAmount)}</span>
-        </p>
-      ` : ''}
-      <p style="display:flex;justify-content:space-between;"><span>Tax (${taxRate}%):</span> <span>$${fmtMoney(tax)}</span></p>
-      <hr style="margin:0.75rem 0;border-color:#333;">
-      <h2 style="color:#22c55e;text-align:right;">Total: $${fmtMoney(total)}</h2>
+      <p><strong>Subtotal:</strong> $${fmtMoney(total)}</p>
+      ${state.discount.value > 0 ? `<p><strong>Discount:</strong> ${state.discount.value}${state.discount.type === 'percent' ? '%' : '$'}</p>` : ''}
+      <hr style="margin:1rem 0;">
+      <h2 style="color:#22c55e;">Total: $${fmtMoney(Math.max(0, total))}</h2>
       
-      <div class="form-group" style="margin-top:1.5rem;">
+      <div class="form-group" style="margin-top:1rem;">
         <label><strong>Payment Method</strong></label>
-        <select id="paymentMethod" style="width:100%;padding:0.75rem;border:1px solid #444;border-radius:8px;background:#16213e;color:#fff;">
+        <select id="paymentMethod" style="width:100%;padding:0.75rem;border:1px solid #e2e8f0;border-radius:8px;">
           <option value="cash">Cash</option>
           <option value="card">Card</option>
           <option value="zelle">Zelle</option>
@@ -658,22 +575,10 @@ async function init() {
 }
 
 function showLoginSuccess() {
-  var loginEl = document.getElementById('login');
-  var mainEl = document.getElementById('main');
-  loginEl.setAttribute('style', 'display: none !important');
-  mainEl.setAttribute('style', 'display: block !important');
+  hide($('#loginScreen'));
+  show($('#mainApp'));
   loadMenu();
   loadTables();
-}
-
-// Test login function
-async function testLogin() {
-  try {
-    await login('1', '1234');
-    showLoginSuccess();
-  } catch(e) {
-    console.error('Test login failed:', e);
-  }
 }
 
 // Register service worker for PWA

@@ -15,9 +15,6 @@
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Apex POS</title>
   <script src="/app.js"></script>
-<script>
-// Use app.js functions
-</script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -56,7 +53,7 @@
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 16px; max-width: 340px; width: 100%;
     }
-    button.pin-key { touch-action: manipulation; display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key {
+    a.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key {
       width: 100%; height: 80px; border-radius: 16px;
       background: #16213e; border: none; color: #fff;
       font-size: 32px; font-weight: bold; cursor: pointer;
@@ -134,35 +131,6 @@
     .modal-header { display: flex; justify-content: space-between; margin-bottom: 16px; }
     .modal-close { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
     
-    /* Modifier Options */
-    .modifier-option {
-      display: flex;
-      align-items: center;
-      padding: 12px;
-      background: #16213e;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: background 0.2s, border 0.2s;
-      border: 2px solid transparent;
-    }
-    .modifier-option:hover { background: #1f2b47; }
-    .modifier-option.selected {
-      border-color: #e94560;
-      background: #1f2b47;
-    }
-    .modifier-option input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      margin-right: 12px;
-      cursor: pointer;
-    }
-    .modifier-option .mod-name { flex: 1; }
-    .modifier-option .mod-price { color: #e94560; font-weight: bold; }
-    .modifier-groups { margin-top: 16px; }
-    .modifier-group h4 { color: #ccc; margin-bottom: 8px; font-size: 14px; }
-    .modifier-group { margin-bottom: 16px; }
-    
     /* Tables */
     .table-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
@@ -214,7 +182,7 @@
     @media (min-width: 768px) {
       .menu-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
       .table-grid { grid-template-columns: repeat(5, 1fr); gap: 16px; }
-      button.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key { width: 90px; height: 90px; font-size: 28px; }
+      a.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key { width: 90px; height: 90px; font-size: 28px; }
       .pin-keypad { gap: 16px; max-width: 340px; }
       .screen { padding: 24px; }
     }
@@ -223,7 +191,7 @@
     @media (min-width: 1024px) {
       .menu-grid { grid-template-columns: repeat(5, 1fr); gap: 20px; }
       .table-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; }
-      button.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key { width: 100px; height: 100px; font-size: 32px; }
+      a.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key { width: 100px; height: 100px; font-size: 32px; }
       .pin-keypad { gap: 20px; max-width: 380px; }
     }
   </style>
@@ -233,7 +201,6 @@
 <!-- Login Screen -->
 <div id="login" class="screen login-screen active">
   <div class="logo">🍜 Apex POS</div>
-  <div id="loginError" class="error" style="display:none;margin-bottom:10px;color:#e94560;background:#2a1a1a;padding:10px;border-radius:4px;"></div>
   <select id="staffSelect" style="width:200px;padding:12px;margin-bottom:20px;background:#16213e;color:#fff;border:1px solid #333;border-radius:8px;font-size:16px;">
     <option value="">Select Staff</option>
     <option value="1">Owner</option>
@@ -247,20 +214,19 @@
     <div class="pin-dot" id="dot3"></div>
   </div>
   <div class="pin-keypad">
-    <button type="button" class="pin-key" data-num="1" onclick="handlePin(1)">1</button>
-    <button type="button" class="pin-key" data-num="2" onclick="handlePin(2)">2</button>
-    <button type="button" class="pin-key" data-num="3" onclick="handlePin(3)">3</button>
-    <button type="button" class="pin-key" data-num="4" onclick="handlePin(4)">4</button>
-    <button type="button" class="pin-key" data-num="5" onclick="handlePin(5)">5</button>
-    <button type="button" class="pin-key" data-num="6" onclick="handlePin(6)">6</button>
-    <button type="button" class="pin-key" data-num="7" onclick="handlePin(7)">7</button>
-    <button type="button" class="pin-key" data-num="8" onclick="handlePin(8)">8</button>
-    <button type="button" class="pin-key" data-num="9" onclick="handlePin(9)">9</button>
-    <button type="button" class="pin-key clear" data-num="C" onclick="handlePin('C')">C</button>
-    <button type="button" class="pin-key" data-num="0" onclick="handlePin(0)">0</button>
-    <button type="button" class="pin-key enter" data-num="E" onclick="handlePin('E')">↵</button>
+    <a href="#press-1" class="pin-key">1</a>
+    <a href="#press-2" class="pin-key">2</a>
+    <a href="#press-3" class="pin-key">3</a>
+    <a href="#press-4" class="pin-key">4</a>
+    <a href="#press-5" class="pin-key">5</a>
+    <a href="#press-6" class="pin-key">6</a>
+    <a href="#press-7" class="pin-key">7</a>
+    <a href="#press-8" class="pin-key">8</a>
+    <a href="#press-9" class="pin-key">9</a>
+    <a href="#press-C" class="pin-key clear">C</a>
+    <a href="#press-0" class="pin-key">0</a>
+    <a href="#press-E" class="pin-key enter">↵</a>
   </div>
-  <button onclick="testLogin()" style="margin-top:20px;padding:10px 20px;background:#3e8c70;color:#fff;border:none;border-radius:8px;cursor:pointer;">Test Login (1234)</button>
 </div>
 
 <!-- Main Screen -->
@@ -295,6 +261,20 @@
     <button class="btn small" id="newOrderBtn">+ New Order</button>
   </div>
   <div class="order-list" id="orderList"></div>
+</div>
+
+<!-- Settings Screen -->
+<div id="settings" class="screen">
+  <div class="header">
+    <h1>Settings</h1>
+  </div>
+  <div style="padding: 20px;">
+    <button class="btn" style="width:100%; margin-bottom:12px;" id="testApiBtn">Test API</button>
+    <button class="btn secondary" style="width:100%; margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
+    <button class="btn" style="width:100%; margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
+    <button class="btn" style="width:100%; margin-bottom:12px;" id="logoutBtn">Logout</button>
+    <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
+  </div>
 </div>
 
 <!-- Printer Settings Modal -->
@@ -358,12 +338,6 @@
   <div class="nav-item" data-screen="orders">
     <span class="nav-icon">📝</span>Orders
   </div>
-  <div class="nav-item" data-screen="kitchen">
-    <span class="nav-icon">👨‍🍳</span>Kitchen
-  </div>
-  <div class="nav-item" data-screen="reports">
-    <span class="nav-icon">📊</span>Reports
-  </div>
   <div class="nav-item" data-screen="settings">
     <span class="nav-icon">⚙️</span>Settings
   </div>
@@ -391,47 +365,733 @@
   </div>
 </div>
 
+<script>
+const API = '';
+let pin = '';
 
+// Hash-based PIN handler for iOS PWA
+window.onhashchange = function() {
+  var hash = window.location.hash;
+  if (hash.startsWith('#press-')) {
+    var num = hash.replace('#press-', '');
+    window.location.hash = '';
+    if (num === 'C') { pin = ''; }
+    else if (num === 'E') { verifyPin(); }
+    else if (num && pin.length < 4) { pin += num; }
+    updatePinDisplay();
+  }
+};
 
-<!-- Checkout Modal -->
-<div id="checkoutModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;overflow-y:auto;">
-  <div style="background:#1a1a2e;padding:20px;width:100%;max-width:450px;margin:0 auto;border-radius:12px;">
-    <h2 style="margin-bottom:20px;text-align:center;">Checkout</h2>
-    <div id="checkoutItems" style="max-height:200px;overflow-y:auto;margin-bottom:16px;"></div>
-    <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Subtotal:</span><span id="chkSubtotal">$0</span></div>
-      <div id="chkDiscount" style="display:none;justify-content:space-between;margin-bottom:8px;color:#ef4444;"></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8.25%):</span><span id="chkTax">$0</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;border-top:1px solid #333;padding-top:8px;"><span>Total:</span><span id="chkTotal" style="color:#22c55e;">$0</span></div>
+let cart = [];
+let menuItems = [];
+let categories = [];
+let tables = [];
+let orders = [];
+let selectedCategory = 'all';
+
+// Auth
+document.querySelectorAll('.pin-key').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const num = btn.dataset.num;
+    if (num === 'C') {
+      pin = '';
+    } else if (num === 'E') {
+      verifyPin();
+    } else if (num && pin.length < 4) {
+      pin += num;
+    }
+    updatePinDisplay();
+  });
+});
+
+function updatePinDisplay() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('dot' + i).classList.toggle('filled', i < pin.length);
+  }
+}
+
+async function verifyPin() {
+  if (pin.length !== 4) return;
+  try {
+    // Try each staff ID until one works
+    let staff = null;
+    for (let staffId = 1; staffId <= 10; staffId++) {
+      const res = await fetch(API + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId, pin })
+      });
+      const data = await res.json();
+      if (data.token) {
+        staff = data;
+        localStorage.setItem('apex_token', data.token);
+        break;
+      }
+    }
+    if (staff) {
+      showScreen('main');
+      document.getElementById('bottomNav').style.display = 'flex';
+      loadMenu();
+      loadTables();
+      loadOrders();
+    } else {
+      pin = '';
+      updatePinDisplay();
+    }
+  } catch {
+    pin = '';
+    updatePinDisplay();
+  }
+}
+
+function showScreen(id) {
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    if (s.classList.contains('login-screen')) {
+      s.style.display = 'none';
+    }
+  });
+  
+  // Show the requested screen
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  if (el.classList.contains('login-screen')) {
+    el.style.display = 'flex';
+  }
+}
+
+// Nav
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const screen = item.dataset.screen;
+    showScreen(screen);
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// Menu
+async function loadMenu() {
+  try {
+    const res = await fetch(API + '/api/menu');
+    menuItems = await res.json();
+    // No /api/menu/categories - extract from items
+    categories = [...new Set(menuItems.map(i => i.category))];
+    renderCategories();
+    renderMenu();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function renderCategories() {
+  const container = document.getElementById('categories');
+  // Extract unique categories from menu items
+  const cats = [...new Set(menuItems.map(i => i.category))];
+  container.innerHTML = '<div class="category-chip active" data-cat="all">All</div>';
+  cats.forEach(cat => {
+    container.innerHTML += `<div class="category-chip" data-cat="${cat}">${cat}</div>`;
+  });
+  container.querySelectorAll('.category-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selectedCategory = chip.dataset.cat;
+      container.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderMenu();
+    });
+  });
+}
+
+function renderMenu() {
+  const container = document.getElementById('menuGrid');
+  const items = selectedCategory === 'all' 
+    ? menuItems 
+    : menuItems.filter(i => i.category === selectedCategory);
+  
+  if (!items.length) {
+    container.innerHTML = '<div class="empty">No items</div>';
+    return;
+  }
+  
+  container.innerHTML = items.map(item => `
+    <div class="menu-item" data-id="${item.id}">
+      <h3>${item.name}</h3>
+      <div class="price">$${item.price.toFixed(2)}</div>
+      <div class="stock">Stock: ${item.stock}</div>
+      ${item.spicy ? '<div class="spicy">🌶️ Spicy</div>' : ''}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
-      <button class="btn" onclick="processPayment('cash')">Cash</button>
-      <button class="btn" onclick="processPayment('card')">Card</button>
-      <button class="btn secondary" onclick="document.getElementById('checkoutModal').style.display='none'">Cancel</button>
+  `).join('');
+  
+  container.querySelectorAll('.menu-item').forEach(el => {
+    el.addEventListener('click', () => openItemModal(parseInt(el.dataset.id)));
+  });
+}
+
+function openItemModal(itemId) {
+  const item = menuItems.find(i => i.id === itemId);
+  if (!item) return;
+  
+  document.getElementById('modalTitle').textContent = item.name;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="text-align:center; margin-bottom:20px;">
+      <div class="price" style="font-size:24px;">$${item.price.toFixed(2)}</div>
+      <div style="color:#888;">Stock: ${item.stock}</div>
     </div>
-  </div>
-</div>
+    <div style="display:flex; gap:12px; justify-content:center;">
+      <button class="btn secondary" onclick="updateQty(${item.id}, -1)">−</button>
+      <span id="qtyDisplay" style="font-size:24px; padding:0 20px;">1</span>
+      <button class="btn" onclick="updateQty(${item.id}, 1)">+</button>
+    </div>
+    <div style="margin-top:20px;">
+      <label style="display:block; margin-bottom:8px; color:#888;">📝 Remarks / Special Requests</label>
+      <textarea id="itemRemarks" placeholder="e.g. No onions, extra sauce, allergen warning..." 
+        style="width:100%; padding:12px; background:#16213e; color:#fff; border:1px solid #333; 
+        border-radius:8px; min-height:80px; resize:none; font-family:inherit;"></textarea>
+    </div>
+    <button class="btn" style="width:100%; margin-top:20px;" onclick="addItemToCart(${item.id});">
+      Add to Cart — $${item.price.toFixed(2)}
+    </button>
+  `;
+  document.getElementById('itemModal').classList.add('active');
+}
 
-<!-- Kitchen Screen -->
-<div id="kitchen" class="screen" style="display:none;">
-  <div class="header"><h1>Kitchen</h1><button class="btn small" onclick="loadKitchenOrders()">Refresh</button></div>
-  <div id="kitchenGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
-</div>
+function updateQty(itemId, delta) {
+  const span = document.getElementById('qtyDisplay');
+  let qty = parseInt(span.textContent) + delta;
+  if (qty < 1) qty = 1;
+  span.textContent = qty;
+}
 
-<!-- Reports Screen -->
-<div id="reports" class="screen" style="display:none;">
-  <div class="header"><h1>Reports</h1></div>
-  <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;">
-    <button class="btn small" onclick="showReport('sales')">Sales</button>
-    <button class="btn small" onclick="showReport('employees')">Employees</button>
-  </div>
-  <div id="reportContent"></div>
-</div>
+function addItemToCart(itemId) {
+  const qty = parseInt(document.getElementById('qtyDisplay').textContent);
+  const remarks = document.getElementById('itemRemarks').value.trim();
+  addToCart(itemId, qty, remarks);
+}
 
-<!-- Settings Screen -->
-<div id="settings" class="screen" style="display:none;">
-  <div class="header"><h1>Settings</h1></div>
-  <div id="settingsContent"></div>
-</div>
+function closeModal() {
+  document.getElementById('itemModal').classList.remove('active');
+}
+
+document.getElementById('closeModal').addEventListener('click', closeModal);
+
+// Cart
+function addToCart(itemId, qty = 1, remarks = '') {
+  const item = menuItems.find(i => i.id === itemId);
+  if (!item) return;
+  
+  // Find existing cart item with same ID and remarks
+  const existing = cart.find(c => c.itemId === itemId && c.remarks === remarks);
+  
+  if (existing) {
+    existing.qty += qty;
+    if (existing.qty <= 0) {
+      cart = cart.filter(c => !(c.itemId === itemId && c.remarks === remarks));
+    }
+  } else if (qty > 0) {
+    cart.push({ itemId, qty, price: item.price, name: item.name, remarks });
+  }
+  updateCartUI();
+  closeModal();
+}
+
+function updateCartUI() {
+  const count = cart.reduce((sum, c) => sum + c.qty, 0);
+  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  
+  document.querySelectorAll('.cart-count').forEach(el => el.textContent = count);
+  document.getElementById('cartTotal').textContent = total.toFixed(2);
+  document.getElementById('cartBar').style.display = count > 0 ? 'flex' : 'none';
+}
+
+document.getElementById('viewCartBtn').addEventListener('click', () => {
+  if (!cart.length) {
+    alert('Cart is empty');
+    return;
+  }
+  renderCartModal();
+  document.getElementById('cartModal').classList.add('active');
+});
+
+function renderCartModal() {
+  const container = document.getElementById('cartModalBody');
+  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  
+  if (!cart.length) {
+    container.innerHTML = '<div class="empty">Cart is empty</div>';
+    return;
+  }
+  
+  container.innerHTML = cart.map((c, idx) => `
+    <div style="background:#16213e; border-radius:12px; padding:12px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:bold;">${c.name}</div>
+          <div style="font-size:12px; color:#e94560;">$${(c.qty * c.price).toFixed(2)}</div>
+          ${c.remarks ? `<div style="font-size:12px; color:#888; margin-top:4px;">📝 ${c.remarks}</div>` : ''}
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn small secondary" onclick="changeCartQty(${idx}, -1)">−</button>
+          <span style="font-size:18px;">${c.qty}</span>
+          <button class="btn small secondary" onclick="changeCartQty(${idx}, 1)">+</button>
+        </div>
+      </div>
+    </div>
+  `).join('') + `
+    <div style="border-top:1px solid #333; padding-top:16px; margin-top:16px;">
+      <div style="display:flex; justify-content:space-between; font-size:18px; margin-bottom:16px;">
+        <span>Subtotal:</span>
+        <span>$${total.toFixed(2)}</span>
+      </div>
+      <button class="btn" style="width:100%;" onclick="processCheckout()">Checkout — $${(total * 1.08).toFixed(2)}</button>
+    </div>
+  `;
+}
+
+function changeCartQty(idx, delta) {
+  cart[idx].qty += delta;
+  if (cart[idx].qty <= 0) {
+    cart.splice(idx, 1);
+  }
+  updateCartUI();
+  renderCartModal();
+}
+
+document.getElementById('closeCartModal').addEventListener('click', () => {
+  document.getElementById('cartModal').classList.remove('active');
+});
+
+function processCheckout() {
+  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  const order = {
+    tableId: 1,
+    items: cart.map(c => ({ 
+      menuItemId: c.itemId, 
+      qty: c.qty, 
+      unitPrice: c.price,
+      remarks: c.remarks || null
+    })),
+    subtotal: total,
+    tax: total * 0.08,
+    total: total * 1.08,
+    status: 'open'
+  };
+  
+  fetch(API + '/api/orders', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+    },
+    body: JSON.stringify(order)
+  }).then(() => {
+    cart = [];
+    updateCartUI();
+    document.getElementById('cartModal').classList.remove('active');
+    loadOrders();
+    alert('Order placed!');
+  }).catch(e => {
+    alert('Error: ' + e.message);
+  });
+}
+
+document.getElementById('checkoutBtn').addEventListener('click', async () => {
+  if (!cart.length) return;
+  
+  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  const order = {
+    tableId: 1, // TODO: table selection
+    items: cart.map(c => ({ menuItemId: c.itemId, qty: c.qty, unitPrice: c.price })),
+    subtotal: total,
+    tax: total * 0.08,
+    total: total * 1.08,
+    status: 'open'
+  };
+  
+  try {
+    await fetch(API + '/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    cart = [];
+    updateCartUI();
+    loadOrders();
+    alert('Order placed!');
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+});
+
+// Tables
+async function loadTables() {
+  try {
+    const res = await fetch(API + '/api/tables');
+    tables = await res.json();
+    renderTables();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function renderTables() {
+  const container = document.getElementById('tableGrid');
+  if (!tables.length) {
+    container.innerHTML = '<div class="empty">No tables</div>';
+    return;
+  }
+  
+  container.innerHTML = tables.map(t => `
+    <div class="table-card ${t.status === 'occupied' ? 'occupied' : ''}" data-id="${t.id}">
+      <div class="number">${t.number}</div>
+      <div class="status">${t.status}</div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('newTableBtn').addEventListener('click', async () => {
+  const num = prompt('Table number:');
+  if (!num) return;
+  try {
+    await fetch(API + '/api/tables', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: parseInt(num), status: 'available' })
+    });
+    loadTables();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+});
+
+// Orders
+async function loadOrders() {
+  try {
+    const res = await fetch(API + '/api/orders');
+    orders = await res.json();
+    renderOrders();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function renderOrders() {
+  const container = document.getElementById('orderList');
+  if (!orders.length) {
+    container.innerHTML = '<div class="empty">No orders</div>';
+    return;
+  }
+  
+  container.innerHTML = orders.map(o => `
+    <div class="order-card">
+      <div class="header">
+        <span>Order #${o.id}</span>
+        <span class="status ${o.status}">${o.status}</span>
+      </div>
+      <div class="items">${(o.items || []).map(i => i.name || 'Item #' + i.menuItemId).join(', ')}</div>
+      <div class="total">$${o.total.toFixed(2)}</div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="btn small secondary" onclick="voidOrder(${o.id})" ${o.status === 'canceled' ? 'disabled' : ''}>🚫 Void</button>
+        <button class="btn small" style="background:#c73e3e;" onclick="deleteOrder(${o.id})">🗑️ Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function voidOrder(orderId) {
+  const reason = prompt('Void reason:');
+  if (reason === null) return;
+  
+  fetch(API + '/api/orders/' + orderId + '/void', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+    },
+    body: JSON.stringify({ reason: reason || 'No reason' })
+  }).then(() => {
+    loadOrders();
+    alert('Order voided');
+  }).catch(e => alert('Error: ' + e.message));
+}
+
+function deleteOrder(orderId) {
+  if (!confirm('Are you sure you want to PERMANENTLY delete this order? This cannot be undone.')) return;
+  
+  fetch(API + '/api/orders/' + orderId, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }
+  }).then(() => {
+    loadOrders();
+    alert('Order deleted');
+  }).catch(e => alert('Error: ' + e.message));
+}
+
+document.getElementById('newOrderBtn').addEventListener('click', () => {
+  showScreen('main');
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  pin = '';
+  updatePinDisplay();
+  showScreen('login');
+  document.getElementById('bottomNav').style.display = 'none';
+});
+
+// Test API
+document.getElementById('testApiBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('testApiBtn');
+  btn.textContent = 'Testing...';
+  try {
+    const [menuRes, tablesRes, ordersRes] = await Promise.all([
+      fetch(API + '/api/menu'),
+      fetch(API + '/api/tables'),
+      fetch(API + '/api/orders')
+    ]);
+    const menuOk = menuRes.ok;
+    const tablesOk = tablesRes.ok;
+    const ordersOk = ordersRes.ok;
+    
+    if (menuOk && tablesOk && ordersOk) {
+      btn.textContent = '✅ All Systems OK';
+      setTimeout(() => btn.textContent = 'Test API', 2000);
+    } else {
+      btn.textContent = '⚠️ Partial Failure';
+      alert(`Menu: ${menuOk ? 'OK' : 'FAIL'}\nTables: ${tablesOk ? 'OK' : 'FAIL'}\nOrders: ${ordersOk ? 'OK' : 'FAIL'}`);
+      btn.textContent = 'Test API';
+    }
+  } catch (e) {
+    btn.textContent = '❌ API Error';
+    alert('API Error: ' + e.message);
+    btn.textContent = 'Test API';
+  }
+});
+
+// Print Last Receipt
+document.getElementById('printBtn').addEventListener('click', async () => {
+  try {
+    const res = await fetch(API + '/api/orders?status=paid');
+    const paidOrders = await res.json();
+    
+    if (!paidOrders.length) {
+      alert('No paid orders to print');
+      return;
+    }
+    
+    // Get the most recent paid order
+    const order = paidOrders.sort((a, b) => b.id - a.id)[0];
+    
+    // Get printer config
+    const configRes = await fetch(API + '/api/print/config');
+    const config = await configRes.json();
+    
+    // Print based on method
+    if (config.type === 'bluetooth') {
+      // Bluetooth printing via Web Bluetooth API
+      await printViaBluetooth(order);
+    } else {
+      // Network or USB - use API
+      const printRes = await fetch(API + '/api/print/receipt', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+        },
+        body: JSON.stringify({ 
+          orderId: order.id,
+          method: config.type,
+          host: config.host,
+          port: config.port
+        })
+      });
+      const result = await printRes.json();
+      if (result.success) {
+        alert('Printed successfully!');
+      } else {
+        alert('Print error: ' + result.error);
+      }
+    }
+  } catch (e) {
+    alert('Error printing: ' + e.message);
+  }
+});
+
+// Bluetooth printing via Web Bluetooth API
+async function printViaBluetooth(order) {
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: ['00001800-0000-1000-8000-00805f9b34fb'] }] // Serial Port Profile
+    });
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService('00001801-0000-1000-8000-00805f9b34fb');
+    const characteristic = await service.getCharacteristic('00001801-0000-1000-8000-00805f9b34fb');
+    
+    const receipt = buildReceiptText(order);
+    const encoder = new TextEncoder();
+    await characteristic.writeValue(encoder.encode(receipt));
+    
+    alert('Printed via Bluetooth!');
+  } catch (e) {
+    if (e.name !== 'NotFoundError') {
+      alert('Bluetooth error: ' + e.message);
+    }
+  }
+}
+
+function buildReceiptText(order) {
+  let text = 'APEX POS\n----------------\n';
+  text += `Order #${order.id}\n`;
+  text += `Table: ${order.Table?.number || 'Takeout'}\n`;
+  text += `Date: ${new Date(order.createdAt).toLocaleString()}\n`;
+  text += '----------------\n';
+  
+  for (const item of order.OrderItems || []) {
+    const qty = item.quantity;
+    const name = item.MenuItem?.name || 'Item';
+    const price = (item.price + (item.modifierPrice || 0)) * qty / 100;
+    text += `${qty}x ${name}\n`;
+    text += `   $${price.toFixed(2)}\n`;
+  }
+  
+  text += '----------------\n';
+  text += `Subtotal: $${(order.subtotal/100).toFixed(2)}\n`;
+  text += `Tax: $${(order.tax/100).toFixed(2)}\n`;
+  text += `TOTAL: $${(order.total/100).toFixed(2)}\n`;
+  text += '----------------\n';
+  text += 'Thank you!\n\n\n';
+  return text;
+}
+
+// Printer Settings Modal
+document.getElementById('printerSettingsBtn').addEventListener('click', async () => {
+  document.getElementById('printerModal').classList.add('active');
+  
+  // Load current config
+  try {
+    const res = await fetch(API + '/api/print/config');
+    const config = await res.json();
+    
+    document.getElementById('printMethod').value = config.type || 'usb';
+    document.getElementById('printerIp').value = config.host || '192.168.1.100';
+    document.getElementById('printerPort').value = config.port || 9100;
+    document.getElementById('usbDevice').value = config.deviceName || 'default';
+    
+    updatePrinterFields();
+  } catch (e) {
+    console.error(e);
+  }
+});
+
+function updatePrinterFields() {
+  const method = document.getElementById('printMethod').value;
+  document.getElementById('networkSettings').style.display = method === 'network' ? 'block' : 'none';
+  document.getElementById('usbSettings').style.display = method === 'usb' ? 'block' : 'none';
+  document.getElementById('bluetoothSettings').style.display = method === 'bluetooth' ? 'block' : 'none';
+}
+
+document.getElementById('printMethod').addEventListener('change', updatePrinterFields);
+document.getElementById('closePrinterModal').addEventListener('click', () => {
+  document.getElementById('printerModal').classList.remove('active');
+});
+
+// Save printer settings
+document.getElementById('savePrinterBtn').addEventListener('click', async () => {
+  const method = document.getElementById('printMethod').value;
+  const config = {
+    type: method,
+    host: document.getElementById('printerIp').value,
+    port: parseInt(document.getElementById('printerPort').value) || 9100,
+    deviceName: document.getElementById('usbDevice').value,
+    bluetoothMac: ''
+  };
+  
+  try {
+    await fetch(API + '/api/print/config', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+      },
+      body: JSON.stringify(config)
+    });
+    alert('Printer settings saved!');
+    document.getElementById('printerModal').classList.remove('active');
+  } catch (e) {
+    alert('Error saving: ' + e.message);
+  }
+});
+
+// Test Print
+document.getElementById('testPrintBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('testPrintBtn');
+  btn.textContent = 'Printing...';
+  
+  try {
+    const configRes = await fetch(API + '/api/print/config');
+    const config = await configRes.json();
+    
+    // Create test order data
+    const testOrder = {
+      id: 999,
+      subtotal: 2500,
+      tax: 200,
+      total: 2700,
+      createdAt: new Date().toISOString(),
+      Table: { number: 1 },
+      staff: { name: 'Test' },
+      OrderItems: [
+        { quantity: 2, price: 1000, MenuItem: { name: 'Test Item' } }
+      ],
+      Payments: [{ method: 'CASH' }]
+    };
+    
+    if (config.type === 'bluetooth') {
+      await printViaBluetooth(testOrder);
+    } else {
+      const res = await fetch(API + '/api/print/receipt', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+        },
+        body: JSON.stringify({ orderId: 999, method: config.type, host: config.host, port: config.port })
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert('Test print sent!');
+      } else {
+        alert('Print error: ' + result.error);
+      }
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+  
+  btn.textContent = '🧪 Test Print';
+});
+
+// Scan Bluetooth devices
+document.getElementById('scanBluetoothBtn').addEventListener('click', async () => {
+  const container = document.getElementById('bluetoothDevices');
+  container.innerHTML = '<div style="text-align:center;color:#888;">Scanning...</div>';
+  
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ['00001800-0000-1000-8000-00805f9b34fb']
+    });
+    
+    container.innerHTML = `
+      <div style="background:#16213e; padding:12px; border-radius:8px; margin-bottom:8px;">
+        <div style="font-weight:bold;">${device.name || 'Unknown Device'}</div>
+        <div style="font-size:12px; color:#888;">${device.id}</div>
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = '<div style="color:#e94560;">' + e.message + '</div>';
+  }
+});
+</script>
+
 </body>
 </html>
