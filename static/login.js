@@ -1,7 +1,8 @@
 // Simple PIN Login - Robust Version
 let pin = '';
 
-document.addEventListener('DOMContentLoaded', function() {
+// Run after page fully loads
+setTimeout(function() {
   // Add click handlers to PIN buttons - prevent default on <a> tags
   document.querySelectorAll('.pin-key').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -17,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
       updatePinDisplay();
     });
   });
-});
+}, 500);
 
 function updatePinDisplay() {
   for (let i = 0; i < 4; i++) {
@@ -44,8 +45,8 @@ async function verifyPin() {
       }
     }
     if (staff) {
-      document.getElementById('login').style.display = 'none';
-      document.getElementById('main').style.display = 'block';
+      showScreen('main');
+      document.getElementById('bottomNav').style.display = 'flex';
       loadMenu();
       loadTables();
       loadOrders();
