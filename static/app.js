@@ -72,6 +72,7 @@ function checkAuth() {
 let currentPin = '';
 
 function handlePin(val) {
+  console.log('handlePin called:', val);
   if (val === 'C') {
     currentPin = '';
     updatePinDisplay();
