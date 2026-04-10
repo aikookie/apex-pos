@@ -1,4 +1,5 @@
 // Apex POS - Full Frontend Application
+console.log('Apex POS app.js loading...');
 const API = '';  // Uses relative URLs (same origin)
 
 // ============ State ============
