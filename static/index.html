@@ -15,6 +15,18 @@
   <link rel="apple-touch-icon" href="/icon-192.png">
   <title>Apex POS</title>
   <script src="/app.js"></script>
+<script>
+function testLogin() {
+  alert('test');
+  fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({staffId: 1, pin: '1234'})
+  }).then(r => r.json()).then(d => {
+    alert('Result: ' + JSON.stringify(d));
+  }).catch(e => alert('Error: ' + e));
+}
+</script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
