@@ -671,7 +671,9 @@ function addToCart(itemId, qty = 1, remarks = '') {
       cart = cart.filter(c => !(c.itemId === itemId && c.remarks === remarks));
     }
   } else if (qty > 0) {
-    cart.push({ itemId, qty, price: totalPrice, basePrice: item.price, modPrice, name: item.name, modifiers: [...itemModifiers], remarks });
+    const modifierQty = {};
+    itemModifiers.forEach(m => modifierQty[m.id] = 1);
+    cart.push({ itemId, qty, price: totalPrice, basePrice: item.price, modPrice, name: item.name, modifiers: [...itemModifiers], remarks, modifierQty });
   }
   itemModifiers = []; // Reset modifiers after adding
   updateCartUI();
@@ -680,7 +682,10 @@ function addToCart(itemId, qty = 1, remarks = '') {
 
 function updateCartUI() {
   const count = cart.reduce((sum, c) => sum + c.qty, 0);
-  const subtotal = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * c.price) + modTotal;
+  }, 0);
   const tax = subtotal * 0.08;
   const total = subtotal + tax;
   
@@ -721,7 +726,10 @@ function updateDiscountDisplay() {
   
   if (!input) return;
   
-  const subtotal = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * c.price) + modTotal;
+  }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
   const tax = taxableAmount * 0.08;
@@ -744,7 +752,10 @@ function renderCartModal() {
   const countEl = document.getElementById('cartItemCount');
   if (countEl) countEl.textContent = itemCount + ' item' + (itemCount !== 1 ? 's' : '');
   
-  const subtotal = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * c.price) + modTotal;
+  }, 0);
   
   if (!cart.length) {
     container.innerHTML = '<div class="empty">Cart is empty</div>';
@@ -759,20 +770,41 @@ function renderCartModal() {
   const tax = taxableAmount * taxRate;
   const total = taxableAmount + tax;
   
-  container.innerHTML = cart.map((c, idx) => `
-    <div style="background:#16213e; border-radius:8px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-      <div style="flex:1; min-width:0;">
-        <div style="font-weight:600; font-size:14px;">${c.name}</div>
-        ${c.modifiers && c.modifiers.length ? `<div style="font-size:10px; color:#fbbf24;">${c.modifiers.map(m => m.name).join(', ')}</div>` : ''}
-        <div style="font-size:13px; color:#e94560; font-weight:600;">$${(c.qty * c.price).toFixed(2)}</div>
+  container.innerHTML = cart.map((c, idx) => {
+    const modQty = c.modifierQty || {};
+    const modTotal = (c.modifiers || []).reduce((sum, m) => sum + (m.price * (modQty[m.id] || 1)), 0);
+    const itemTotal = (c.qty * c.price) + modTotal;
+    return `
+    <div style="background:#16213e; border-radius:8px; padding:12px; margin-bottom:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="editCartItem(${idx})">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:14px;">${c.name} <span style="font-size:10px;color:#666;">(tap to edit)</span></div>
+          <div style="font-size:13px; color:#888;">Base: $${c.price.toFixed(2)} × ${c.qty}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="btn small secondary" onclick="changeCartQty(${idx}, -1)" style="width:28px; height:28px; padding:0;">−</button>
+          <span style="font-size:14px; font-weight:600; min-width:20px; text-align:center;">${c.qty}</span>
+          <button class="btn small secondary" onclick="changeCartQty(${idx}, 1)" style="width:28px; height:28px; padding:0;">+</button>
+        </div>
       </div>
-      <div style="display:flex; align-items:center; gap:4px;">
-        <button class="btn small secondary" onclick="changeCartQty(${idx}, -1)" style="width:28px; height:28px; padding:0;">−</button>
-        <span style="font-size:14px; font-weight:600; min-width:20px; text-align:center;">${c.qty}</span>
-        <button class="btn small secondary" onclick="changeCartQty(${idx}, 1)" style="width:28px; height:28px; padding:0;">+</button>
+      ${c.modifiers && c.modifiers.length ? c.modifiers.map((m) => {
+        const mQty = modQty[m.id] || 1;
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid #2d2d4a; margin-top:8px;">
+          <div style="font-size:12px; color:#fbbf24;">+ ${m.name}</div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <button class="btn small secondary" onclick="changeModQty(${idx}, ${m.id}, -1)" style="width:24px; height:24px; padding:0; font-size:12px;">−</button>
+            <span style="font-size:12px; min-width:16px; text-align:center;">${mQty}</span>
+            <button class="btn small secondary" onclick="changeModQty(${idx}, ${m.id}, 1)" style="width:24px; height:24px; padding:0; font-size:12px;">+</button>
+            <span style="font-size:12px; color:#888; min-width:50px; text-align:right;">$${(m.price * mQty).toFixed(2)}</span>
+          </div>
+        </div>`;
+      }).join('') : ''}
+      <div style="border-top:1px solid #2d2d4a; margin-top:8px; padding-top:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12px; color:#888;">Item Total</span>
+        <span style="font-size:14px; font-weight:bold; color:#e94560;">$${itemTotal.toFixed(2)}</span>
       </div>
-    </div>
-  `).join('') + (cart.length > 1 ? `
+    </div>`;
+  }).join('') + (cart.length > 1 ? `
     <button onclick="clearCart()" style="width:100%; padding:8px; background:transparent; border:none; color:#888; font-size:12px; cursor:pointer;">Clear All</button>
   ` : '') + `
     <div style="border-top:1px solid #2d2d4a; padding-top:12px; margin-top:4px;">
@@ -819,6 +851,26 @@ function changeCartQty(idx, delta) {
   renderCartModal();
 }
 
+function changeModQty(cartIdx, modId, delta) {
+  const c = cart[cartIdx];
+  if (!c) return;
+  if (!c.modifierQty) c.modifierQty = {};
+  c.modifierQty[modId] = (c.modifierQty[modId] || 1) + delta;
+  if (c.modifierQty[modId] <= 0) {
+    delete c.modifierQty[modId];
+    c.modifiers = c.modifiers.filter(m => m.id !== modId);
+  }
+  updateCartUI();
+  renderCartModal();
+}
+
+function editCartItem(idx) {
+  const cartItem = cart[idx];
+  const item = menuItems.find(i => i.id === cartItem.itemId);
+  if (!item) return;
+  openItemModal(cartItem.itemId);
+}
+
 function clearCart() {
   if (!confirm('Clear all items from cart?')) return;
   cart = [];
@@ -831,7 +883,10 @@ document.getElementById('closeCartModal').addEventListener('click', () => {
 });
 
 function processCheckout() {
-  const subtotal = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * c.price) + modTotal;
+  }, 0);
   
   // Use global discount values (updated as user types)
   const discount = { type: discountTypeGlobal, value: discountValueGlobal };
@@ -880,7 +935,10 @@ function processCheckout() {
 document.getElementById('checkoutBtn').addEventListener('click', async () => {
   if (!cart.length) return;
   
-  const subtotal = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * c.price) + modTotal;
+  }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
   const tax = taxableAmount * 0.08;

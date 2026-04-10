@@ -1,27 +1,7 @@
-◇ injecting env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injecting env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
 DB synced
 Seeded staff
 Seeded menu with modifiers
 Seeded tables
 Seeded employees
-node:events:497
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use :::5001
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at Server.listen (node:net:2102:7)
-    at Function.listen (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/application.js:635:24)
-    at /root/.openclaw/workspace/apex-pos/server.js:838:7
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1976:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -98,
-  syscall: 'listen',
-  address: '::',
-  port: 5001
-}
-
-Node.js v22.22.0
+Apex POS on 5001

@@ -5,3 +5,58 @@ Seeded menu with modifiers
 Seeded tables
 Seeded employees
 Apex POS on 5001
+/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:50
+      throw new sequelizeError.ValidationError(null, this.errors);
+            ^
+
+ValidationError [SequelizeValidationError]: notNull Violation: OrderItem.price cannot be null
+    at InstanceValidator._validate (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:50:13)
+    at async InstanceValidator._validateAndRunHooks (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:60:7)
+    at async InstanceValidator.validate (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:54:12)
+    at async model.save (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/model.js:2426:7)
+    at async OrderItem.create (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/model.js:1362:12)
+    at async /root/.openclaw/workspace/apex-pos/server.js:246:5 {
+  errors: [
+    ValidationErrorItem {
+      message: 'OrderItem.price cannot be null',
+      type: 'notNull Violation',
+      path: 'price',
+      value: null,
+      origin: 'CORE',
+      instance: OrderItem {
+        dataValues: {
+          id: null,
+          orderId: 3,
+          menuItemId: undefined,
+          quantity: 1,
+          price: undefined,
+          modifiers: '[{"id":1,"name":"Extra Spicy","price":0,"qty":1},{"id":2,"name":"Add Rice (+$2.00)","price":2,"qty":1}]',
+          updatedAt: 2026-04-10T21:34:49.999Z,
+          createdAt: 2026-04-10T21:34:49.999Z
+        },
+        _previousDataValues: {
+          orderId: undefined,
+          quantity: undefined,
+          modifiers: undefined
+        },
+        uniqno: 1,
+        _changed: Set(3) { 'orderId', 'quantity', 'modifiers' },
+        _options: {
+          isNewRecord: true,
+          _schema: null,
+          _schemaDelimiter: '',
+          attributes: undefined,
+          include: undefined,
+          raw: undefined,
+          silent: undefined
+        },
+        isNewRecord: true
+      },
+      validatorKey: 'is_null',
+      validatorName: null,
+      validatorArgs: []
+    }
+  ]
+}
+
+Node.js v22.22.0
