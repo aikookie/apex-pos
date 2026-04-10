@@ -113,6 +113,18 @@ function updatePinDisplay() {
   }
 }
 
+// Test login function
+async function testLogin() {
+  console.log('Test login clicked');
+  try {
+    await login('1', '1234');
+    showLoginSuccess();
+  } catch(e) {
+    console.error('Test login failed:', e);
+    alert('Login failed: ' + e.message);
+  }
+}
+
 // ============ Views ============
 function switchView(viewName) {
   state.currentView = viewName;
