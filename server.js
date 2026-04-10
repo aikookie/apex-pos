@@ -5,6 +5,15 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
+const fs = require('fs');
+
+// Sync static/index.html to root index.html on startup
+const staticIndex = path.join(__dirname, 'static', 'index.html');
+const rootIndex = path.join(__dirname, 'index.html');
+if (fs.existsSync(staticIndex)) {
+  fs.copyFileSync(staticIndex, rootIndex);
+  console.log('Synced static/index.html → index.html');
+}
 
 const { sequelize, Staff, MenuItem, MenuModifier, Table, Order, OrderItem, Payment, Setting, Employee, Shift } = require('./models');
 
@@ -110,6 +119,13 @@ app.get('/api/modifiers', async (req, res) => {
   res.json(modifiers);
 });
 
+app.get('/api/modifiers/categories', async (req, res) => {
+  // Use SQL DISTINCT for faster query, normalize to lowercase
+  const modifiers = await MenuModifier.findAll({ attributes: ['category'], raw: true });
+  const categories = [...new Set(modifiers.map(m => (m.category || '').toLowerCase()).filter(c => c))];
+  res.json(categories);
+});
+
 app.post('/api/modifiers', authMiddleware, adminOnly, async (req, res) => {
   const modifier = await MenuModifier.create(req.body);
   res.json(modifier);
@@ -125,6 +141,13 @@ app.delete('/api/modifiers/:id', authMiddleware, adminOnly, async (req, res) => 
   if (!modifier) return res.status(404).json({ error: 'Modifier not found' });
   await modifier.destroy();
   res.json({ deleted: true });
+});
+
+app.put('/api/modifiers/:id', authMiddleware, adminOnly, async (req, res) => {
+  const modifier = await MenuModifier.findByPk(req.params.id);
+  if (!modifier) return res.status(404).json({ error: 'Modifier not found' });
+  await modifier.update(req.body);
+  res.json(modifier);
 });
 
 // ============ Tables ============
@@ -652,10 +675,6 @@ app.put('/api/inventory/:id', authMiddleware, adminOnly, async (req, res) => {
     });
   }
   console.log('Seeded employees');
-
-  // Seed default settings
-  await Setting.upsert({ key: 'stock_enabled', value: 'false', category: 'system' });
-  console.log('Seeded settings');
 
   // ============ Receipt Printing ============
   
