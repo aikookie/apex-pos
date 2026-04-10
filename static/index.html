@@ -16,32 +16,7 @@
   <title>Apex POS</title>
   <script src="/app.js"></script>
 <script>
-async function loadMenu() {
-  const token = localStorage.getItem('apex_token');
-  const r = await fetch('/api/menu', { headers: { Authorization: 'Bearer ' + token }});
-  const items = await r.json();
-  const grid = document.getElementById('menuGrid');
-  grid.innerHTML = items.map(i => `<div style="padding:12px;background:#16213e;border-radius:8px;">${i.name} - $${(i.price/100).toFixed(2)}</div>`).join('');
-}
-
-async function testLogin() {
-  const r = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({staffId: 1, pin: '1234'})
-  });
-  const d = await r.json();
-  if (d.token) {
-    localStorage.setItem('apex_token', d.token);
-    var loginEl = document.getElementById('login');
-    var mainEl = document.getElementById('main');
-    loginEl.setAttribute('style', 'display: none !important');
-    mainEl.setAttribute('style', 'display: block !important');
-    loadMenu();
-  } else {
-    alert('Login failed');
-  }
-}
+// Use app.js functions
 </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }

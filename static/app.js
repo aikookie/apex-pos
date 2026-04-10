@@ -658,10 +658,22 @@ async function init() {
 }
 
 function showLoginSuccess() {
-  hide($('#login'));
-  show($('#main'));
+  var loginEl = document.getElementById('login');
+  var mainEl = document.getElementById('main');
+  loginEl.setAttribute('style', 'display: none !important');
+  mainEl.setAttribute('style', 'display: block !important');
   loadMenu();
   loadTables();
+}
+
+// Test login function
+async function testLogin() {
+  try {
+    await login('1', '1234');
+    showLoginSuccess();
+  } catch(e) {
+    console.error('Test login failed:', e);
+  }
 }
 
 // Register service worker for PWA
