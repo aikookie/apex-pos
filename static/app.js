@@ -67,6 +67,48 @@ function checkAuth() {
   return false;
 }
 
+// ============ PIN Pad ============
+let currentPin = '';
+
+function handlePin(val) {
+  if (val === 'C') {
+    currentPin = '';
+    updatePinDisplay();
+    return;
+  }
+  
+  if (val === 'E') {
+    // Enter - attempt login
+    const staffId = $('#staffSelect')?.value || '1';
+    if (currentPin.length > 0) {
+      login(staffId, currentPin).then(() => {
+        currentPin = '';
+        updatePinDisplay();
+      }).catch(e => {
+        $('#loginError').textContent = e.message || 'Login failed';
+        $('#loginError').classList.add('show');
+        currentPin = '';
+        updatePinDisplay();
+      });
+    }
+    return;
+  }
+  
+  if (currentPin.length < 4) {
+    currentPin += val;
+    updatePinDisplay();
+  }
+}
+
+function updatePinDisplay() {
+  for (let i = 0; i < 4; i++) {
+    const dot = $(`#dot${i}`);
+    if (dot) {
+      dot.classList.toggle('filled', i < currentPin.length);
+    }
+  }
+}
+
 // ============ Views ============
 function switchView(viewName) {
   state.currentView = viewName;
@@ -211,11 +253,12 @@ function updateCartUI() {
     return;
   }
   
-  let total = 0;
+  let subtotal = 0;
   container.innerHTML = state.cart.map((item, idx) => {
-    const modPrice = item.modifiers ? item.modifiers.reduce((s, m) => s + m.price, 0) : 0;
-    const itemTotal = (item.price + modPrice);
-    total += itemTotal;
+    const qty = item.qty || 1;
+    const modPrice = item.modifiers ? item.modifiers.reduce((s, m) => s + (m.price || 0), 0) : 0;
+    const itemTotal = (item.price + modPrice) * qty;
+    subtotal += itemTotal;
     
     return `
       <div class="cart-item">
@@ -225,23 +268,29 @@ function updateCartUI() {
         </div>
         <div class="cart-item-qty">
           <button class="btn btn-secondary" onclick="changeQty(${idx}, -1)">-</button>
-          <span>${item.qty || 1}</span>
+          <span>${qty}</span>
           <button class="btn btn-secondary" onclick="changeQty(${idx}, 1)">+</button>
-          <span style="margin-left:auto;font-weight:600;">$${fmtMoney(itemTotal * (item.qty || 1))}</span>
+          <span style="margin-left:auto;font-weight:600;">$${fmtMoney(itemTotal)}</span>
         </div>
-        ${item.modifiers && item.modifiers.length ? `<div class="cart-item-mods">${item.modifiers.map(m => m.name).join(', ')}</div>` : ''}
+        ${item.modifiers && item.modifiers.length ? `<div class="cart-item-mods">${item.modifiers.map(m => m.price > 0 ? m.name + ' (+$' + fmtMoney(m.price) + ')' : m.name).join(', ')}</div>` : ''}
       </div>
     `;
   }).join('');
   
-  // Apply discount
+  // Calculate discount and tax
+  let discountAmount = 0;
   if (state.discount.value > 0) {
     if (state.discount.type === 'percent') {
-      total = total * (1 - state.discount.value / 100);
+      discountAmount = subtotal * (state.discount.value / 100);
     } else {
-      total = total - (state.discount.value * 100);
+      discountAmount = state.discount.value * 100;
     }
   }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = Math.round(taxableAmount * (taxRate / 100));
+  const total = taxableAmount + tax;
   
   $('#cartTotal').textContent = fmtMoney(Math.max(0, total));
 }
@@ -273,32 +322,49 @@ $('#checkoutBtn').onclick = () => {
 };
 
 async function openCheckoutModal() {
-  let total = state.cart.reduce((s, item) => {
-    const modPrice = item.modifiers ? item.modifiers.reduce((m, x) => m + x.price, 0) : 0;
+  // Calculate subtotal (before discount)
+  let subtotal = state.cart.reduce((s, item) => {
+    const modPrice = item.modifiers ? item.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
     return s + (item.price + modPrice) * (item.qty || 1);
   }, 0);
   
+  // Calculate discount amount
+  let discountAmount = 0;
+  let discountPercent = 0;
   if (state.discount.value > 0) {
     if (state.discount.type === 'percent') {
-      total = total * (1 - state.discount.value / 100);
+      discountPercent = state.discount.value;
+      discountAmount = subtotal * (state.discount.value / 100);
     } else {
-      total = total - (state.discount.value * 100);
+      discountAmount = state.discount.value * 100;
     }
   }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25; // Default tax rate
+  const tax = Math.round(taxableAmount * (taxRate / 100));
+  const total = taxableAmount + tax;
   
   const body = `
     <div style="padding:1rem;">
       <h3>Order Summary</h3>
       <p><strong>Table:</strong> ${state.tables.find(t => t.id === state.selectedTable)?.number || state.selectedTable}</p>
       <p><strong>Items:</strong> ${state.cart.length}</p>
-      <p><strong>Subtotal:</strong> $${fmtMoney(total)}</p>
-      ${state.discount.value > 0 ? `<p><strong>Discount:</strong> ${state.discount.value}${state.discount.type === 'percent' ? '%' : '$'}</p>` : ''}
-      <hr style="margin:1rem 0;">
-      <h2 style="color:#22c55e;">Total: $${fmtMoney(Math.max(0, total))}</h2>
+      <hr style="margin:0.75rem 0;border-color:#333;">
+      <p style="display:flex;justify-content:space-between;"><span>Subtotal:</span> <span>$${fmtMoney(subtotal)}</span></p>
+      ${discountAmount > 0 ? `
+        <p style="display:flex;justify-content:space-between;color:#ef4444;">
+          <span>Discount (${discountPercent > 0 ? discountPercent + '%' : '$' + fmtMoney(discountAmount)}):</span> 
+          <span>-$${fmtMoney(discountAmount)}</span>
+        </p>
+      ` : ''}
+      <p style="display:flex;justify-content:space-between;"><span>Tax (${taxRate}%):</span> <span>$${fmtMoney(tax)}</span></p>
+      <hr style="margin:0.75rem 0;border-color:#333;">
+      <h2 style="color:#22c55e;text-align:right;">Total: $${fmtMoney(total)}</h2>
       
-      <div class="form-group" style="margin-top:1rem;">
+      <div class="form-group" style="margin-top:1.5rem;">
         <label><strong>Payment Method</strong></label>
-        <select id="paymentMethod" style="width:100%;padding:0.75rem;border:1px solid #e2e8f0;border-radius:8px;">
+        <select id="paymentMethod" style="width:100%;padding:0.75rem;border:1px solid #444;border-radius:8px;background:#16213e;color:#fff;">
           <option value="cash">Cash</option>
           <option value="card">Card</option>
           <option value="zelle">Zelle</option>

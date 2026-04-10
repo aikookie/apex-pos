@@ -5,15 +5,7 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
-const fs = require('fs');
-
-// Sync static/index.html to root index.html on startup
-const staticIndex = path.join(__dirname, 'static', 'index.html');
-const rootIndex = path.join(__dirname, 'index.html');
-if (fs.existsSync(staticIndex)) {
-  fs.copyFileSync(staticIndex, rootIndex);
-  console.log('Synced static/index.html → index.html');
-}
+// Note: Server serves from 'static' folder - no copy needed
 
 const { sequelize, Staff, MenuItem, MenuModifier, Table, Order, OrderItem, Payment, Setting, Employee, Shift } = require('./models');
 
@@ -225,13 +217,25 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
   const discountAmount = discount.type === 'percent' 
     ? subtotal * (discount.value / 100) 
     : discount.value || 0;
-  const total = subtotal - discountAmount;
+  
+  // Get tax rate from settings (default 8.25%)
+  let taxRate = 8.25;
+  try {
+    const taxSetting = await Setting.findOne({ where: { key: 'taxRate' } });
+    if (taxSetting) taxRate = parseFloat(taxSetting.value) || 8.25;
+  } catch (e) { /* use default */ }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const tax = Math.round(taxableAmount * (taxRate / 100));
+  const total = taxableAmount + tax;
   
   const order = await Order.create({
     TableId: tableId,
     StaffId: staffId || req.user?.id || 1,
     orderType,
     status: 'open',
+    subtotal,
+    tax,
     total,
     discount: discountAmount,
     notes: discount.reason || ''

@@ -52,7 +52,7 @@
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 16px; max-width: 340px; width: 100%;
     }
-    a.pin-key { touch-action: manipulation; display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key {
+    button.pin-key { touch-action: manipulation; display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key {
       width: 100%; height: 80px; border-radius: 16px;
       background: #16213e; border: none; color: #fff;
       font-size: 32px; font-weight: bold; cursor: pointer;
@@ -210,7 +210,7 @@
     @media (min-width: 768px) {
       .menu-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
       .table-grid { grid-template-columns: repeat(5, 1fr); gap: 16px; }
-      a.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key { width: 90px; height: 90px; font-size: 28px; }
+      button.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key { width: 90px; height: 90px; font-size: 28px; }
       .pin-keypad { gap: 16px; max-width: 340px; }
       .screen { padding: 24px; }
     }
@@ -219,7 +219,7 @@
     @media (min-width: 1024px) {
       .menu-grid { grid-template-columns: repeat(5, 1fr); gap: 20px; }
       .table-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; }
-      a.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; } .pin-key { width: 100px; height: 100px; font-size: 32px; }
+      button.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key { width: 100px; height: 100px; font-size: 32px; }
       .pin-keypad { gap: 20px; max-width: 380px; }
     }
   </style>
@@ -229,6 +229,7 @@
 <!-- Login Screen -->
 <div id="login" class="screen login-screen active">
   <div class="logo">🍜 Apex POS</div>
+  <div id="loginError" class="error" style="display:none;margin-bottom:10px;color:#e94560;background:#2a1a1a;padding:10px;border-radius:4px;"></div>
   <select id="staffSelect" style="width:200px;padding:12px;margin-bottom:20px;background:#16213e;color:#fff;border:1px solid #333;border-radius:8px;font-size:16px;">
     <option value="">Select Staff</option>
     <option value="1">Owner</option>
@@ -242,18 +243,18 @@
     <div class="pin-dot" id="dot3"></div>
   </div>
   <div class="pin-keypad">
-    <a href="#press-1" class="pin-key" data-num="1">1</a>
-    <a href="#press-2" class="pin-key" data-num="2">2</a>
-    <a href="#press-3" class="pin-key" data-num="3">3</a>
-    <a href="#press-4" class="pin-key" data-num="4">4</a>
-    <a href="#press-5" class="pin-key" data-num="5">5</a>
-    <a href="#press-6" class="pin-key" data-num="6">6</a>
-    <a href="#press-7" class="pin-key" data-num="7">7</a>
-    <a href="#press-8" class="pin-key" data-num="8">8</a>
-    <a href="#press-9" class="pin-key" data-num="9">9</a>
-    <a href="#press-C" class="pin-key clear" data-num="C">C</a>
-    <a href="#press-0" class="pin-key" data-num="0">0</a>
-    <a href="#press-E" class="pin-key enter" data-num="E">↵</a>
+    <button type="button" class="pin-key" data-num="1" onclick="handlePin(1)">1</button>
+    <button type="button" class="pin-key" data-num="2" onclick="handlePin(2)">2</button>
+    <button type="button" class="pin-key" data-num="3" onclick="handlePin(3)">3</button>
+    <button type="button" class="pin-key" data-num="4" onclick="handlePin(4)">4</button>
+    <button type="button" class="pin-key" data-num="5" onclick="handlePin(5)">5</button>
+    <button type="button" class="pin-key" data-num="6" onclick="handlePin(6)">6</button>
+    <button type="button" class="pin-key" data-num="7" onclick="handlePin(7)">7</button>
+    <button type="button" class="pin-key" data-num="8" onclick="handlePin(8)">8</button>
+    <button type="button" class="pin-key" data-num="9" onclick="handlePin(9)">9</button>
+    <button type="button" class="pin-key clear" data-num="C" onclick="handlePin('C')">C</button>
+    <button type="button" class="pin-key" data-num="0" onclick="handlePin(0)">0</button>
+    <button type="button" class="pin-key enter" data-num="E" onclick="handlePin('E')">↵</button>
   </div>
 </div>
 
@@ -389,6 +390,7 @@
 const API = '';
 let pin = '';
 let cart = [];
+let cartDiscount = { type: 'percent', value: 0 };
 let menuItems = [];
 let categories = [];
 let tables = [];
@@ -396,19 +398,16 @@ let orders = [];
 let selectedCategory = 'all';
 
 // Auth
-document.querySelectorAll('.pin-key').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const num = btn.dataset.num;
-    if (num === 'C') {
-      pin = '';
-    } else if (num === 'E') {
-      verifyPin();
-    } else if (num && pin.length < 4) {
-      pin += num;
-    }
-    updatePinDisplay();
-  });
-});
+function handlePin(num) {
+  if (num === 'C') {
+    pin = '';
+  } else if (num === 'E') {
+    verifyPin();
+  } else if (num !== undefined && pin.length < 4) {
+    pin += num;
+  }
+  updatePinDisplay();
+}
 
 function updatePinDisplay() {
   for (let i = 0; i < 4; i++) {
@@ -652,7 +651,28 @@ function addToCart(itemId, qty = 1, remarks = '') {
 
 function updateCartUI() {
   const count = cart.reduce((sum, c) => sum + c.qty, 0);
-  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  
+  // Calculate subtotal including modifier prices
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  // Apply discount
+  let discountAmount = 0;
+  if (cartDiscount.value > 0) {
+    if (cartDiscount.type === 'percent') {
+      discountAmount = subtotal * (cartDiscount.value / 100);
+    } else {
+      discountAmount = cartDiscount.value;
+    }
+  }
+  
+  // Calculate tax on after-discount amount
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
   
   document.querySelectorAll('.cart-count').forEach(el => el.textContent = count);
   document.getElementById('cartTotal').textContent = total.toFixed(2);
@@ -670,19 +690,38 @@ document.getElementById('viewCartBtn').addEventListener('click', () => {
 
 function renderCartModal() {
   const container = document.getElementById('cartModalBody');
-  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  
+  // Calculate with modifiers
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  let discountAmount = 0;
+  if (cartDiscount.value > 0) {
+    discountAmount = cartDiscount.type === 'percent' ? subtotal * (cartDiscount.value / 100) : cartDiscount.value;
+  }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
   
   if (!cart.length) {
     container.innerHTML = '<div class="empty">Cart is empty</div>';
     return;
   }
   
-  container.innerHTML = cart.map((c, idx) => `
+  container.innerHTML = cart.map((c, idx) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    const itemTotal = c.qty * (c.price + modPrice);
+    return `
     <div style="background:#16213e; border-radius:12px; padding:12px; margin-bottom:12px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div style="font-weight:bold;">${c.name}</div>
-          <div style="font-size:12px; color:#e94560;">$${(c.qty * c.price).toFixed(2)}</div>
+          <div style="font-size:12px; color:#e94560;">$${itemTotal.toFixed(2)} <span style="color:#888;">(${c.qty} x $${c.price}${modPrice > 0 ? ' + $' + modPrice.toFixed(2) : ''})</span></div>
+          ${c.modifiers && c.modifiers.length ? `<div style="font-size:11px; color:#aaa; margin-top:2px;">${c.modifiers.map(m => m.price > 0 ? m.name + ' (+$' + m.price + ')' : m.name).join(', ')}</div>` : ''}
           ${c.remarks ? `<div style="font-size:12px; color:#888; margin-top:4px;">📝 ${c.remarks}</div>` : ''}
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -692,13 +731,27 @@ function renderCartModal() {
         </div>
       </div>
     </div>
-  `).join('') + `
+  `}).join('') + `
     <div style="border-top:1px solid #333; padding-top:16px; margin-top:16px;">
-      <div style="display:flex; justify-content:space-between; font-size:18px; margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
         <span>Subtotal:</span>
-        <span>$${total.toFixed(2)}</span>
+        <span>$${subtotal.toFixed(2)}</span>
       </div>
-      <button class="btn" style="width:100%;" onclick="processCheckout()">Checkout — $${(total * 1.08).toFixed(2)}</button>
+      ${discountAmount > 0 ? `
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#ef4444;">
+        <span>Discount (${cartDiscount.type === 'percent' ? cartDiscount.value + '%' : '$' + cartDiscount.value}):</span>
+        <span>-$${discountAmount.toFixed(2)}</span>
+      </div>
+      ` : ''}
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span>Tax (${taxRate}%):</span>
+        <span>$${tax.toFixed(2)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:bold; margin-top:8px; padding-top:8px; border-top:1px solid #333;">
+        <span>Total:</span>
+        <span style="color:#22c55e;">$${total.toFixed(2)}</span>
+      </div>
+      <button class="btn" style="width:100%; margin-top:16px;" onclick="openCheckoutModal()">Checkout — $${total.toFixed(2)}</button>
     </div>
   `;
 }
@@ -1150,26 +1203,165 @@ document.getElementById('scanBluetoothBtn').addEventListener('click', async () =
 
 function openCheckoutModal() {
   if(!cart.length) return alert('Cart empty!');
-  const subtotal = cart.reduce((s,c) => s + c.qty*c.price, 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
   
-  document.getElementById('checkoutItems').innerHTML = cart.map(c => 
-    '<div style="display:flex;justify-content:space-between;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;"><span>' + c.qty + 'x ' + c.name + '</span><span>$' + (c.qty*c.price).toFixed(2) + '</span></div>'
-  ).join('');
+  // Calculate with modifiers
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  let discountAmount = 0;
+  let discountLabel = '';
+  if (cartDiscount.value > 0) {
+    if (cartDiscount.type === 'percent') {
+      discountAmount = subtotal * (cartDiscount.value / 100);
+      discountLabel = cartDiscount.value + '%';
+    } else {
+      discountAmount = cartDiscount.value;
+      discountLabel = '$' + cartDiscount.value;
+    }
+  }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
+  
+  document.getElementById('checkoutItems').innerHTML = cart.map(c => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    const itemTotal = c.qty * (c.price + modPrice);
+    return '<div style="display:flex;justify-content:space-between;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;"><span>' + c.qty + 'x ' + c.name + (c.modifiers && c.modifiers.length ? ' <span style="color:#888;font-size:11px;">(' + c.modifiers.map(m => m.name).join(', ') + ')</span>' : '') + '</span><span>$' + itemTotal.toFixed(2) + '</span></div>';
+  }).join('');
   
   document.getElementById('chkSubtotal').textContent = '$' + subtotal.toFixed(2);
-  document.getElementById('chkTax').textContent = '$' + tax.toFixed(2);
-  document.getElementById('chkTotal').textContent = '$' + total.toFixed(2);
+  
+  // Add discount row if there's a discount
+  let chkTaxEl = document.getElementById('chkTax');
+  let chkTotalEl = document.getElementById('chkTotal');
+  
+  // Check if discount row exists, if not add it
+  let discountRow = document.getElementById('chkDiscount');
+  if (!discountRow && discountAmount > 0) {
+    // Insert discount row before tax
+    const taxRow = document.querySelector('#checkoutModal div div div:nth-child(2)');
+    if (taxRow) {
+      taxRow.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#ef4444;"><span>Discount (${discountLabel}):</span><span>-$${discountAmount.toFixed(2)}</span></div>` + taxRow.innerHTML;
+    }
+  } else if (discountRow) {
+    discountRow.innerHTML = `<span>Discount (${discountLabel}):</span><span>-$${discountAmount.toFixed(2)}</span>`;
+  }
+  
+  chkTaxEl.textContent = '$' + tax.toFixed(2);
+  chkTotalEl.textContent = '$' + total.toFixed(2);
+  
+  // Show/hide discount row
+  const discountRow = document.getElementById('chkDiscount');
+  if (discountAmount > 0) {
+    discountRow.style.display = 'flex';
+    discountRow.innerHTML = `<span>Discount (${discountLabel}):</span><span>-$${discountAmount.toFixed(2)}</span>`;
+  } else {
+    discountRow.style.display = 'none';
+  }
+  
   document.getElementById('checkoutModal').style.display = 'block';
 }
 
 async function processPayment(method) {
-  const total = (cart.reduce((s,c) => s + c.qty*c.price, 0) * 1.08).toFixed(2);
-  alert(method.toUpperCase() + ' payment of $' + total + ' processed!');
-  cart = [];
-  updateCartUI();
-  document.getElementById('checkoutModal').style.display = 'none';
+  // Calculate totals
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  let discountAmount = 0;
+  if (cartDiscount.value > 0) {
+    discountAmount = cartDiscount.type === 'percent' ? subtotal * (cartDiscount.value / 100) : cartDiscount.value;
+  }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
+  
+  const orderData = {
+    tableId: 1, // TODO: allow table selection
+    items: cart.map(c => ({
+      menuItemId: c.itemId,
+      price: c.price,
+      qty: c.qty,
+      modifiers: c.modifiers || []
+    })),
+    discount: cartDiscount.value > 0 ? { type: cartDiscount.type, value: cartDiscount.value } : { type: 'percent', value: 0 }
+  };
+  
+  try {
+    // Create order
+    const orderRes = await fetch(API + '/api/orders', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    if (!orderRes.ok) throw new Error('Failed to create order');
+    const order = await orderRes.json();
+    
+    // Create payment
+    await fetch(API + '/api/payments', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+      },
+      body: JSON.stringify({ amount: Math.round(total * 100), method, orderId: order.id })
+    });
+    
+    // Show receipt
+    showReceipt(order, method);
+    
+    // Clear cart
+    cart = [];
+    cartDiscount = { type: 'percent', value: 0 };
+    updateCartUI();
+    document.getElementById('checkoutModal').style.display = 'none';
+  } catch(e) {
+    alert('Payment failed: ' + e.message);
+  }
+}
+
+function showReceipt(order, method) {
+  // Get the actual calculated values from order response
+  const subtotal = order.subtotal || 0;
+  const tax = order.tax || 0;
+  const discount = order.discount || 0;
+  const total = order.total || 0;
+  
+  const receiptHtml = `
+    <div style="background:#1a1a2e;padding:24px;border-radius:12px;max-width:400px;margin:0 auto;text-align:center;">
+      <h2 style="color:#e94560;margin-bottom:8px;">🧾 Payment Complete!</h2>
+      <p style="color:#888;margin-bottom:16px;">Order #${order.id}</p>
+      
+      <div style="background:#16213e;padding:16px;border-radius:8px;text-align:left;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal:</span><span>$${(subtotal/100).toFixed(2)}</span></div>
+        ${discount > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#ef4444;"><span>Discount:</span><span>-$${(discount/100).toFixed(2)}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Tax:</span><span>$${(tax/100).toFixed(2)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;padding-top:8px;border-top:1px solid #333;"><span>Total:</span><span style="color:#22c55e;">$${(total/100).toFixed(2)}</span></div>
+      </div>
+      
+      <p style="font-size:18px;margin-bottom:16px;">Paid via <strong>${method.toUpperCase()}</strong></p>
+      
+      <button class="btn" style="width:100%;" onclick="this.closest('.modal').style.display='none'">Done</button>
+    </div>
+  `;
+  
+  // Show in a modal
+  const modal = document.createElement('div');
+  modal.id = 'receiptModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:3000;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = receiptHtml;
+  document.body.appendChild(modal);
 }
 
 // Hook checkout button
@@ -1721,8 +1913,9 @@ async function deleteModifier(id) {
     <div id="checkoutItems" style="max-height:200px;overflow-y:auto;margin-bottom:16px;"></div>
     <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Subtotal:</span><span id="chkSubtotal">$0</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8%):</span><span id="chkTax">$0</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;border-top:1px solid #333;padding-top:8px;"><span>Total:</span><span id="chkTotal" style="color:#e94560;">$0</span></div>
+      <div id="chkDiscount" style="display:none;justify-content:space-between;margin-bottom:8px;color:#ef4444;"></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8.25%):</span><span id="chkTax">$0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;border-top:1px solid #333;padding-top:8px;"><span>Total:</span><span id="chkTotal" style="color:#22c55e;">$0</span></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
       <button class="btn" onclick="processPayment('cash')">Cash</button>

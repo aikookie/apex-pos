@@ -32,7 +32,10 @@
     
     /* Login */
     .login-screen { 
-      display: flex; flex-direction: column; 
+      display: none; flex-direction: column;
+    }
+    .login-screen.active { 
+      display: flex; 
       justify-content: center; align-items: center;
       gap: 24px;
     }
@@ -49,7 +52,7 @@
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 16px; max-width: 340px; width: 100%;
     }
-    .pin-key {
+    button.pin-key { touch-action: manipulation; display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key {
       width: 100%; height: 80px; border-radius: 16px;
       background: #16213e; border: none; color: #fff;
       font-size: 32px; font-weight: bold; cursor: pointer;
@@ -127,6 +130,35 @@
     .modal-header { display: flex; justify-content: space-between; margin-bottom: 16px; }
     .modal-close { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
     
+    /* Modifier Options */
+    .modifier-option {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: #16213e;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.2s, border 0.2s;
+      border: 2px solid transparent;
+    }
+    .modifier-option:hover { background: #1f2b47; }
+    .modifier-option.selected {
+      border-color: #e94560;
+      background: #1f2b47;
+    }
+    .modifier-option input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+      cursor: pointer;
+    }
+    .modifier-option .mod-name { flex: 1; }
+    .modifier-option .mod-price { color: #e94560; font-weight: bold; }
+    .modifier-groups { margin-top: 16px; }
+    .modifier-group h4 { color: #ccc; margin-bottom: 8px; font-size: 14px; }
+    .modifier-group { margin-bottom: 16px; }
+    
     /* Tables */
     .table-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
@@ -178,7 +210,7 @@
     @media (min-width: 768px) {
       .menu-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
       .table-grid { grid-template-columns: repeat(5, 1fr); gap: 16px; }
-      .pin-key { width: 90px; height: 90px; font-size: 28px; }
+      button.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key { width: 90px; height: 90px; font-size: 28px; }
       .pin-keypad { gap: 16px; max-width: 340px; }
       .screen { padding: 24px; }
     }
@@ -187,7 +219,7 @@
     @media (min-width: 1024px) {
       .menu-grid { grid-template-columns: repeat(5, 1fr); gap: 20px; }
       .table-grid { grid-template-columns: repeat(6, 1fr); gap: 20px; }
-      .pin-key { width: 100px; height: 100px; font-size: 32px; }
+      button.pin-key { display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit; border:0; } .pin-key { width: 100px; height: 100px; font-size: 32px; }
       .pin-keypad { gap: 20px; max-width: 380px; }
     }
   </style>
@@ -197,6 +229,12 @@
 <!-- Login Screen -->
 <div id="login" class="screen login-screen active">
   <div class="logo">🍜 Apex POS</div>
+  <select id="staffSelect" style="width:200px;padding:12px;margin-bottom:20px;background:#16213e;color:#fff;border:1px solid #333;border-radius:8px;font-size:16px;">
+    <option value="">Select Staff</option>
+    <option value="1">Owner</option>
+    <option value="2">Manager</option>
+    <option value="3">Server</option>
+  </select>
   <div class="pin-display">
     <div class="pin-dot" id="dot0"></div>
     <div class="pin-dot" id="dot1"></div>
@@ -204,18 +242,18 @@
     <div class="pin-dot" id="dot3"></div>
   </div>
   <div class="pin-keypad">
-    <button class="pin-key" data-num="1">1</button>
-    <button class="pin-key" data-num="2">2</button>
-    <button class="pin-key" data-num="3">3</button>
-    <button class="pin-key" data-num="4">4</button>
-    <button class="pin-key" data-num="5">5</button>
-    <button class="pin-key" data-num="6">6</button>
-    <button class="pin-key" data-num="7">7</button>
-    <button class="pin-key" data-num="8">8</button>
-    <button class="pin-key" data-num="9">9</button>
-    <button class="pin-key clear" data-num="C">C</button>
-    <button class="pin-key" data-num="0">0</button>
-    <button class="pin-key enter" data-num="E">↵</button>
+    <button type="button" class="pin-key" data-num="1">1</button>
+    <button type="button" class="pin-key" data-num="2">2</button>
+    <button type="button" class="pin-key" data-num="3">3</button>
+    <button type="button" class="pin-key" data-num="4">4</button>
+    <button type="button" class="pin-key" data-num="5">5</button>
+    <button type="button" class="pin-key" data-num="6">6</button>
+    <button type="button" class="pin-key" data-num="7">7</button>
+    <button type="button" class="pin-key" data-num="8">8</button>
+    <button type="button" class="pin-key" data-num="9">9</button>
+    <button type="button" class="pin-key clear" data-num="C">C</button>
+    <button type="button" class="pin-key" data-num="0">0</button>
+    <button type="button" class="pin-key enter" data-num="E">↵</button>
   </div>
 </div>
 
@@ -251,20 +289,6 @@
     <button class="btn small" id="newOrderBtn">+ New Order</button>
   </div>
   <div class="order-list" id="orderList"></div>
-</div>
-
-<!-- Settings Screen -->
-<div id="settings" class="screen">
-  <div class="header">
-    <h1>Settings</h1>
-  </div>
-  <div style="padding: 20px;">
-    <button class="btn" style="width:100%; margin-bottom:12px;" id="testApiBtn">Test API</button>
-    <button class="btn secondary" style="width:100%; margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
-    <button class="btn" style="width:100%; margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
-    <button class="btn" style="width:100%; margin-bottom:12px;" id="logoutBtn">Logout</button>
-    <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
-  </div>
 </div>
 
 <!-- Printer Settings Modal -->
@@ -328,6 +352,12 @@
   <div class="nav-item" data-screen="orders">
     <span class="nav-icon">📝</span>Orders
   </div>
+  <div class="nav-item" data-screen="kitchen">
+    <span class="nav-icon">👨‍🍳</span>Kitchen
+  </div>
+  <div class="nav-item" data-screen="reports">
+    <span class="nav-icon">📊</span>Reports
+  </div>
   <div class="nav-item" data-screen="settings">
     <span class="nav-icon">⚙️</span>Settings
   </div>
@@ -359,6 +389,7 @@
 const API = '';
 let pin = '';
 let cart = [];
+let cartDiscount = { type: 'percent', value: 0 };
 let menuItems = [];
 let categories = [];
 let tables = [];
@@ -367,7 +398,8 @@ let selectedCategory = 'all';
 
 // Auth
 document.querySelectorAll('.pin-key').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
     const num = btn.dataset.num;
     if (num === 'C') {
       pin = '';
@@ -421,8 +453,20 @@ async function verifyPin() {
 }
 
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  
+  // Show the requested screen
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  if (el.classList.contains('login-screen')) {
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'block';
+  }
 }
 
 // Nav
@@ -432,6 +476,10 @@ document.querySelectorAll('.nav-item').forEach(item => {
     showScreen(screen);
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     item.classList.add('active');
+    // Load data for specific screens
+    if (screen === 'kitchen') loadKitchenOrders();
+    if (screen === 'reports') showReport('sales');
+    if (screen === 'settings') loadSettings();
   });
 });
 
@@ -478,11 +526,12 @@ function renderMenu() {
     return;
   }
   
+  const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
   container.innerHTML = items.map(item => `
     <div class="menu-item" data-id="${item.id}">
       <h3>${item.name}</h3>
       <div class="price">$${item.price.toFixed(2)}</div>
-      <div class="stock">Stock: ${item.stock}</div>
+      ${stockEnabled && item.stock != null ? '<div class="stock">Stock: ' + item.stock + '</div>' : ''}
       ${item.spicy ? '<div class="spicy">🌶️ Spicy</div>' : ''}
     </div>
   `).join('');
@@ -492,9 +541,37 @@ function renderMenu() {
   });
 }
 
-function openItemModal(itemId) {
+let itemModifiers = [];
+
+async function openItemModal(itemId) {
   const item = menuItems.find(i => i.id === itemId);
   if (!item) return;
+  
+  // Reset modal state
+  document.getElementById('itemModal').style.display = 'block';
+  itemModifiers = [];
+  
+  // Fetch modifiers from backend
+  let modifiersHtml = '';
+  try {
+    const res = await fetch(API + '/api/menu/' + itemId + '/modifiers');
+    const mods = await res.json();
+    
+    if (mods.length > 0) {
+      const categories = [...new Set(mods.map(m => m.category))];
+      let catHtml = '';
+      categories.forEach(cat => {
+        catHtml += '<div style="margin-bottom:12px;"><div style="font-size:12px;color:#888;margin-bottom:4px;text-transform:uppercase;margin-top:8px;">' + cat + '</div>';
+        const catMods = mods.filter(m => m.category === cat);
+        catMods.forEach(m => {
+          const priceStr = m.price > 0 ? ' (+$' + m.price.toFixed(2) + ')' : '';
+          catHtml += '<label style="display:flex;align-items:center;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;cursor:pointer;"><input type="checkbox" style="width:18px;height:18px;margin-right:8px;" onchange="toggleItemModifier(' + m.id + ', \"' + m.name + '\", ' + m.price + ')"><span style="font-size:14px;">' + m.name + priceStr + '</span></label>';
+        });
+        catHtml += '</div>';
+      });
+      modifiersHtml = '<div style="margin-top:20px;padding-top:20px;border-top:1px solid #333;"><div style="font-weight:bold;margin-bottom:12px;color:#e94560;">MODIFIERS</div>' + catHtml + '</div>';
+    }
+  } catch(e) {}
   
   document.getElementById('modalTitle').textContent = item.name;
   document.getElementById('modalBody').innerHTML = `
@@ -507,17 +584,26 @@ function openItemModal(itemId) {
       <span id="qtyDisplay" style="font-size:24px; padding:0 20px;">1</span>
       <button class="btn" onclick="updateQty(${item.id}, 1)">+</button>
     </div>
+    ${modifiersHtml}
     <div style="margin-top:20px;">
-      <label style="display:block; margin-bottom:8px; color:#888;">📝 Remarks / Special Requests</label>
-      <textarea id="itemRemarks" placeholder="e.g. No onions, extra sauce, allergen warning..." 
+      <label style="display:block; margin-bottom:8px; color:#888;">📝 Remarks</label>
+      <textarea id="itemRemarks" placeholder="Special requests..." 
         style="width:100%; padding:12px; background:#16213e; color:#fff; border:1px solid #333; 
-        border-radius:8px; min-height:80px; resize:none; font-family:inherit;"></textarea>
+        border-radius:8px; min-height:60px; resize:none; font-family:inherit;"></textarea>
     </div>
     <button class="btn" style="width:100%; margin-top:20px;" onclick="addItemToCart(${item.id});">
-      Add to Cart — $${item.price.toFixed(2)}
+      Add to Cart
     </button>
   `;
-  document.getElementById('itemModal').classList.add('active');
+  document.getElementById('itemModal').style.display = 'block';
+}
+
+function toggleItemModifier(modId, modName, modPrice) {
+  if (itemModifiers.some(m => m.id === modId)) {
+    itemModifiers = itemModifiers.filter(m => m.id !== modId);
+  } else {
+    itemModifiers.push({ id: modId, name: modName, price: modPrice });
+  }
 }
 
 function updateQty(itemId, delta) {
@@ -530,14 +616,20 @@ function updateQty(itemId, delta) {
 function addItemToCart(itemId) {
   const qty = parseInt(document.getElementById('qtyDisplay').textContent);
   const remarks = document.getElementById('itemRemarks').value.trim();
-  addToCart(itemId, qty, remarks);
+  const modNames = itemModifiers.map(m => m.name).join(', ');
+  const fullRemarks = modNames ? modNames + (remarks ? ' | ' + remarks : '') : remarks;
+  addToCart(itemId, qty, fullRemarks);
+  document.getElementById('itemModal').classList.remove('active');
 }
 
 function closeModal() {
   document.getElementById('itemModal').classList.remove('active');
+  document.getElementById('itemModal').style.display = 'none';
 }
 
-document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('closeModal').onclick = function() {
+  document.getElementById('itemModal').style.display = 'none';
+};
 
 // Cart
 function addToCart(itemId, qty = 1, remarks = '') {
@@ -549,11 +641,12 @@ function addToCart(itemId, qty = 1, remarks = '') {
   
   if (existing) {
     existing.qty += qty;
+    existing.modifiers = itemModifiers.length ? itemModifiers : (existing.modifiers || []);
     if (existing.qty <= 0) {
       cart = cart.filter(c => !(c.itemId === itemId && c.remarks === remarks));
     }
   } else if (qty > 0) {
-    cart.push({ itemId, qty, price: item.price, name: item.name, remarks });
+    cart.push({ itemId, qty, price: item.price, name: item.name, modifiers: itemModifiers, remarks });
   }
   updateCartUI();
   closeModal();
@@ -561,7 +654,28 @@ function addToCart(itemId, qty = 1, remarks = '') {
 
 function updateCartUI() {
   const count = cart.reduce((sum, c) => sum + c.qty, 0);
-  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  
+  // Calculate subtotal including modifier prices
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  // Apply discount
+  let discountAmount = 0;
+  if (cartDiscount.value > 0) {
+    if (cartDiscount.type === 'percent') {
+      discountAmount = subtotal * (cartDiscount.value / 100);
+    } else {
+      discountAmount = cartDiscount.value;
+    }
+  }
+  
+  // Calculate tax on after-discount amount
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
   
   document.querySelectorAll('.cart-count').forEach(el => el.textContent = count);
   document.getElementById('cartTotal').textContent = total.toFixed(2);
@@ -579,19 +693,38 @@ document.getElementById('viewCartBtn').addEventListener('click', () => {
 
 function renderCartModal() {
   const container = document.getElementById('cartModalBody');
-  const total = cart.reduce((sum, c) => sum + (c.qty * c.price), 0);
+  
+  // Calculate with modifiers
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  let discountAmount = 0;
+  if (cartDiscount.value > 0) {
+    discountAmount = cartDiscount.type === 'percent' ? subtotal * (cartDiscount.value / 100) : cartDiscount.value;
+  }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
   
   if (!cart.length) {
     container.innerHTML = '<div class="empty">Cart is empty</div>';
     return;
   }
   
-  container.innerHTML = cart.map((c, idx) => `
+  container.innerHTML = cart.map((c, idx) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    const itemTotal = c.qty * (c.price + modPrice);
+    return `
     <div style="background:#16213e; border-radius:12px; padding:12px; margin-bottom:12px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div style="font-weight:bold;">${c.name}</div>
-          <div style="font-size:12px; color:#e94560;">$${(c.qty * c.price).toFixed(2)}</div>
+          <div style="font-size:12px; color:#e94560;">$${itemTotal.toFixed(2)} <span style="color:#888;">(${c.qty} x $${c.price}${modPrice > 0 ? ' + $' + modPrice.toFixed(2) : ''})</span></div>
+          ${c.modifiers && c.modifiers.length ? `<div style="font-size:11px; color:#aaa; margin-top:2px;">${c.modifiers.map(m => m.price > 0 ? m.name + ' (+$' + m.price + ')' : m.name).join(', ')}</div>` : ''}
           ${c.remarks ? `<div style="font-size:12px; color:#888; margin-top:4px;">📝 ${c.remarks}</div>` : ''}
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -601,13 +734,27 @@ function renderCartModal() {
         </div>
       </div>
     </div>
-  `).join('') + `
+  `}).join('') + `
     <div style="border-top:1px solid #333; padding-top:16px; margin-top:16px;">
-      <div style="display:flex; justify-content:space-between; font-size:18px; margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
         <span>Subtotal:</span>
-        <span>$${total.toFixed(2)}</span>
+        <span>$${subtotal.toFixed(2)}</span>
       </div>
-      <button class="btn" style="width:100%;" onclick="processCheckout()">Checkout — $${(total * 1.08).toFixed(2)}</button>
+      ${discountAmount > 0 ? `
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#ef4444;">
+        <span>Discount (${cartDiscount.type === 'percent' ? cartDiscount.value + '%' : '$' + cartDiscount.value}):</span>
+        <span>-$${discountAmount.toFixed(2)}</span>
+      </div>
+      ` : ''}
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span>Tax (${taxRate}%):</span>
+        <span>$${tax.toFixed(2)}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:bold; margin-top:8px; padding-top:8px; border-top:1px solid #333;">
+        <span>Total:</span>
+        <span style="color:#22c55e;">$${total.toFixed(2)}</span>
+      </div>
+      <button class="btn" style="width:100%; margin-top:16px;" onclick="openCheckoutModal()">Checkout — $${total.toFixed(2)}</button>
     </div>
   `;
 }
@@ -632,7 +779,8 @@ function processCheckout() {
     items: cart.map(c => ({ 
       menuItemId: c.itemId, 
       qty: c.qty, 
-      unitPrice: c.price,
+      price: c.price,
+      modifiers: c.modifiers || [],
       remarks: c.remarks || null
     })),
     subtotal: total,
@@ -1055,7 +1203,751 @@ document.getElementById('scanBluetoothBtn').addEventListener('click', async () =
     container.innerHTML = '<div style="color:#e94560;">' + e.message + '</div>';
   }
 });
+
+function openCheckoutModal() {
+  if(!cart.length) return alert('Cart empty!');
+  
+  // Calculate with modifiers
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  let discountAmount = 0;
+  let discountLabel = '';
+  if (cartDiscount.value > 0) {
+    if (cartDiscount.type === 'percent') {
+      discountAmount = subtotal * (cartDiscount.value / 100);
+      discountLabel = cartDiscount.value + '%';
+    } else {
+      discountAmount = cartDiscount.value;
+      discountLabel = '$' + cartDiscount.value;
+    }
+  }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
+  
+  document.getElementById('checkoutItems').innerHTML = cart.map(c => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    const itemTotal = c.qty * (c.price + modPrice);
+    return '<div style="display:flex;justify-content:space-between;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;"><span>' + c.qty + 'x ' + c.name + (c.modifiers && c.modifiers.length ? ' <span style="color:#888;font-size:11px;">(' + c.modifiers.map(m => m.name).join(', ') + ')</span>' : '') + '</span><span>$' + itemTotal.toFixed(2) + '</span></div>';
+  }).join('');
+  
+  document.getElementById('chkSubtotal').textContent = '$' + subtotal.toFixed(2);
+  
+  // Add discount row if there's a discount
+  let chkTaxEl = document.getElementById('chkTax');
+  let chkTotalEl = document.getElementById('chkTotal');
+  
+  // Check if discount row exists, if not add it
+  let discountRow = document.getElementById('chkDiscount');
+  if (!discountRow && discountAmount > 0) {
+    // Insert discount row before tax
+    const taxRow = document.querySelector('#checkoutModal div div div:nth-child(2)');
+    if (taxRow) {
+      taxRow.innerHTML = `<div style="display:flex;justify-content:space-between;margin-bottom:8px;color:#ef4444;"><span>Discount (${discountLabel}):</span><span>-$${discountAmount.toFixed(2)}</span></div>` + taxRow.innerHTML;
+    }
+  } else if (discountRow) {
+    discountRow.innerHTML = `<span>Discount (${discountLabel}):</span><span>-$${discountAmount.toFixed(2)}</span>`;
+  }
+  
+  chkTaxEl.textContent = '$' + tax.toFixed(2);
+  chkTotalEl.textContent = '$' + total.toFixed(2);
+  
+  // Show/hide discount row
+  const discountRow = document.getElementById('chkDiscount');
+  if (discountAmount > 0) {
+    discountRow.style.display = 'flex';
+    discountRow.innerHTML = `<span>Discount (${discountLabel}):</span><span>-$${discountAmount.toFixed(2)}</span>`;
+  } else {
+    discountRow.style.display = 'none';
+  }
+  
+  document.getElementById('checkoutModal').style.display = 'block';
+}
+
+async function processPayment(method) {
+  // Calculate totals
+  const subtotal = cart.reduce((sum, c) => {
+    const modPrice = c.modifiers ? c.modifiers.reduce((m, x) => m + (x.price || 0), 0) : 0;
+    return sum + (c.qty * (c.price + modPrice));
+  }, 0);
+  
+  let discountAmount = 0;
+  if (cartDiscount.value > 0) {
+    discountAmount = cartDiscount.type === 'percent' ? subtotal * (cartDiscount.value / 100) : cartDiscount.value;
+  }
+  
+  const taxableAmount = subtotal - discountAmount;
+  const taxRate = 8.25;
+  const tax = taxableAmount * (taxRate / 100);
+  const total = taxableAmount + tax;
+  
+  const orderData = {
+    tableId: 1, // TODO: allow table selection
+    items: cart.map(c => ({
+      menuItemId: c.itemId,
+      price: c.price,
+      qty: c.qty,
+      modifiers: c.modifiers || []
+    })),
+    discount: cartDiscount.value > 0 ? { type: cartDiscount.type, value: cartDiscount.value } : { type: 'percent', value: 0 }
+  };
+  
+  try {
+    // Create order
+    const orderRes = await fetch(API + '/api/orders', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    if (!orderRes.ok) throw new Error('Failed to create order');
+    const order = await orderRes.json();
+    
+    // Create payment
+    await fetch(API + '/api/payments', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+      },
+      body: JSON.stringify({ amount: Math.round(total * 100), method, orderId: order.id })
+    });
+    
+    // Show receipt
+    showReceipt(order, method);
+    
+    // Clear cart
+    cart = [];
+    cartDiscount = { type: 'percent', value: 0 };
+    updateCartUI();
+    document.getElementById('checkoutModal').style.display = 'none';
+  } catch(e) {
+    alert('Payment failed: ' + e.message);
+  }
+}
+
+function showReceipt(order, method) {
+  // Get the actual calculated values from order response
+  const subtotal = order.subtotal || 0;
+  const tax = order.tax || 0;
+  const discount = order.discount || 0;
+  const total = order.total || 0;
+  
+  const receiptHtml = `
+    <div style="background:#1a1a2e;padding:24px;border-radius:12px;max-width:400px;margin:0 auto;text-align:center;">
+      <h2 style="color:#e94560;margin-bottom:8px;">🧾 Payment Complete!</h2>
+      <p style="color:#888;margin-bottom:16px;">Order #${order.id}</p>
+      
+      <div style="background:#16213e;padding:16px;border-radius:8px;text-align:left;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal:</span><span>$${(subtotal/100).toFixed(2)}</span></div>
+        ${discount > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px;color:#ef4444;"><span>Discount:</span><span>-$${(discount/100).toFixed(2)}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Tax:</span><span>$${(tax/100).toFixed(2)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;padding-top:8px;border-top:1px solid #333;"><span>Total:</span><span style="color:#22c55e;">$${(total/100).toFixed(2)}</span></div>
+      </div>
+      
+      <p style="font-size:18px;margin-bottom:16px;">Paid via <strong>${method.toUpperCase()}</strong></p>
+      
+      <button class="btn" style="width:100%;" onclick="this.closest('.modal').style.display='none'">Done</button>
+    </div>
+  `;
+  
+  // Show in a modal
+  const modal = document.createElement('div');
+  modal.id = 'receiptModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:3000;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = receiptHtml;
+  document.body.appendChild(modal);
+}
+
+// Hook checkout button
+document.getElementById('checkoutBtn').onclick = openCheckoutModal;
+
+async function loadKitchenOrders() {
+  try {
+    const res = await fetch(API + '/api/kitchen/orders');
+    const orders = await res.json();
+    const grid = document.getElementById('kitchenGrid');
+    if(!orders.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#888;padding:40px;">No active orders</div>';
+      return;
+    }
+    grid.innerHTML = orders.map(o => {
+      const age = Math.floor((Date.now() - new Date(o.createdAt))/60000);
+      const color = age > 15 ? '#ff4444' : age > 10 ? '#ffaa00' : '#4ade80';
+      const items = (o.items || []).map(i => '<div style="padding:6px;background:#1a1a2e;border-radius:4px;margin-bottom:4px;">' + i.qty + 'x ' + i.name + (i.remarks ? '<br><small style=color:#888>' + i.remarks + '</small>' : '') + '</div>').join('');
+      return '<div style="background:#16213e;border-radius:12px;padding:12px;border-left:4px solid ' + color + '"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><strong>#' + o.id + '</strong><span style="color:' + color + '">' + age + ' min</span></div>' + items + '<button class="btn" style="width:100%;margin-top:8px;background:#4ade80;" onclick="markReady(' + o.id + ')">Ready</button></div>';
+    }).join('');
+  } catch(e) { document.getElementById('kitchenGrid').innerHTML = '<div style=color:#ff4444>Error loading orders</div>'; }
+}
+
+async function markReady(id) {
+  await fetch(API + '/api/kitchen/orders/' + id + '/ready', { method: 'PUT', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+  loadKitchenOrders();
+}
+
+async function showReport(type) {
+  const c = document.getElementById('reportContent');
+  c.innerHTML = '<div style=text-align:center;padding:40px;color:#888>Loading...</div>';
+  try {
+    const res = await fetch(API + '/api/reports/' + type, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+    const d = await res.json();
+    if(type === 'sales') c.innerHTML = '<div style=background:#16213e;padding:24px;border-radius:12px;text-align:center><div style=font-size:32px;font-weight:bold;color:#e94560>$' + (d.totalSales||0) + '</div><div style=color:#888>Total Sales</div></div>';
+    else c.innerHTML = d.map(e => '<div style=background:#16213e;padding:16px;border-radius:12px;margin-bottom:8px><div style=font-weight:bold>' + e.name + '</div></div>').join('');
+  } catch(e) { c.innerHTML = '<div style=color:#ff4444>Error - Admin required</div>'; }
+}
+
+async function loadSettings() {
+  const c = document.getElementById('settingsContent');
+  if (!c) { 
+    alert('Settings container not found!'); 
+    return; 
+  }
+  c.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;">
+      <button class="btn small active" onclick="showSettingsTab('menu', this)">Menu Items</button>
+      <button class="btn small" onclick="showSettingsTab('modifiers', this)">Modifiers</button>
+      <button class="btn small" onclick="showSettingsTab('stock', this)">Stock</button>
+      <button class="btn small" onclick="showSettingsTab('system', this)">System</button>
+    </div>
+    <div id="settingsTabContent">Loading...</div>
+  `;
+  showSettingsTab('menu', null);
+}
+
+async function showSettingsTab(tab, btn) {
+  const content = document.getElementById('settingsTabContent');
+  document.querySelectorAll('#settingsContent .btn.small').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  
+  if (tab === 'menu') {
+    try {
+      const res = await fetch(API + '/api/menu');
+      const items = await res.json();
+      const catRes = await fetch(API + '/api/menu/categories');
+      const categories = await catRes.json();
+      const catOptions = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      
+      content.innerHTML = `
+        <button class="btn" style="margin-bottom:16px;width:100%;" onclick="showAddMenuItemModal()">+ Add Menu Item</button>
+        <div style="display:grid;gap:8px;">
+          ${items.length ? items.map(i => `
+            <div style="background:#16213e;padding:12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:bold;">${i.name}</div>
+                <div style="color:#888;font-size:12px;">${i.category} - $${i.price.toFixed(2)}</div>
+              </div>
+              <button class="btn small" onclick="editMenuItem(${i.id})">Edit</button>
+            </div>
+          `).join('') : '<div style="color:#888;text-align:center;padding:20px;">No menu items yet</div>'}
+        </div>
+      `;
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading menu - Admin required</div>'; }
+  } else if (tab === 'modifiers') {
+    try {
+      const res = await fetch(API + '/api/modifiers');
+      const modifiers = await res.json();
+      const grouped = {};
+      modifiers.forEach(m => {
+        if (!grouped[m.category]) grouped[m.category] = [];
+        grouped[m.category].push(m);
+      });
+      
+      content.innerHTML = `
+        <button class="btn" style="margin-bottom:16px;width:100%;" onclick="showAddModifierModal()">+ Add Modifier</button>
+        <div style="display:grid;gap:16px;">
+          ${Object.keys(grouped).length ? Object.entries(grouped).map(([cat, mods]) => `
+            <div style="background:#16213e;padding:12px;border-radius:8px;">
+              <div style="font-weight:bold;margin-bottom:8px;text-transform:uppercase;font-size:12px;color:#e94560;">${cat}</div>
+              ${mods.map(m => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #333;">
+                  <span>${m.name} ${m.price ? '($' + m.price.toFixed(2) + ')' : ''}</span>
+                  <div style="display:flex;gap:4px;">
+                    <button class="btn small" onclick="editModifier(${m.id}, '${m.name}', ${m.price}, '${m.category || ''}')">Edit</button>
+                    <button class="btn small" style="background:#ff4444;" onclick="deleteModifier(${m.id})">×</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `).join('') : '<div style="color:#888;text-align:center;padding:20px;">No modifiers yet</div>'}
+        </div>
+      `;
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading modifiers</div>'; }
+  } else if (tab === 'stock') {
+    try {
+      const res = await fetch(API + '/api/menu');
+      const items = await res.json();
+      content.innerHTML = `
+        <div style="display:grid;gap:8px;">
+          ${items.map(i => `
+            <div style="background:#16213e;padding:12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:bold;">${i.name}</div>
+                <div style="color:#888;font-size:12px;">Stock: ${i.stock !== null ? i.stock : 'Unlimited'}</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" id="stock-${i.id}" value="${i.stock || 0}" style="width:60px;padding:8px;border-radius:4px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+                <button class="btn small" onclick="updateStock(${i.id})">Update</button>
+                <button class="btn small" style="background:#ff4444;" onclick="removeStock(${i.id})">Remove</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
+  } else if (tab === 'system') {
+    const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
+    content.innerHTML = `
+      <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:bold;">Stock Tracking</div>
+          <div style="color:#888;font-size:12px;">Show stock in menu</div>
+        </div>
+        <button class="btn small" onclick="toggleStock()" style="background:${stockEnabled ? '#4ade80' : '#333'};">${stockEnabled ? 'ON' : 'OFF'}</button>
+      </div>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="testApiBtn">Test API</button>
+      <button class="btn secondary" style="width:100%;margin-bottom:12px;" id="printBtn">Print Last Receipt</button>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="printerSettingsBtn">🖨️ Printer Settings</button>
+      <button class="btn" style="width:100%;margin-bottom:12px;" id="logoutBtn">Logout</button>
+      <button class="btn secondary" style="width:100%;" onclick="location.reload()">Reload</button>
+    `;
+    setTimeout(() => {
+      document.getElementById('logoutBtn')?.addEventListener('click', () => { localStorage.clear(); location.reload(); });
+      document.getElementById('testApiBtn')?.addEventListener('click', async () => { alert('API working!'); });
+      document.getElementById('printBtn')?.addEventListener('click', async () => { alert('No recent receipt'); });
+      document.getElementById('printerSettingsBtn')?.addEventListener('click', async () => { document.getElementById('printerModal').style.display = 'block'; });
+    }, 100);
+  }
+}
+
+async function showAddMenuItemModal() {
+  const catRes = await fetch(API + '/api/menu/categories');
+  const categories = await catRes.json();
+  const catOptions = categories.length ? categories.map(c => `<option value="${c}">${c}</option>`).join('') : '<option value="Main">Main</option>';
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="text" id="newItemName" placeholder="Item Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <select id="newItemCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" onchange="toggleNewCategory(this)">
+        <option value="">Select Category</option>
+        ${catOptions}
+      </select>
+      <input type="text" id="newItemCategoryCustom" placeholder="Type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+      <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('newItemCategory').style.display='none';document.getElementById('newItemCategoryCustom').style.display='block';this.style.display='none';document.getElementById('newItemCategoryCustom').focus();">(+) Add new category</label>
+      <input type="number" id="newItemPrice" placeholder="Price" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <input type="text" id="newItemDesc" placeholder="Description" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemPopular"> Popular</label>
+      <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="newItemSpicy"> Spicy</label>
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveNewMenuItem()">Save</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Add Menu Item';
+  document.getElementById('itemModal').style.display = 'block';
+}
+
+async function saveNewMenuItem() {
+  const name = document.getElementById('newItemName').value;
+  if (!name) return alert('Name required');
+  const categorySelect = document.getElementById('newItemCategory');
+  const categoryCustom = document.getElementById('newItemCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
+  const price = parseFloat(document.getElementById('newItemPrice').value) || 0;
+  const description = document.getElementById('newItemDesc').value;
+  const popular = document.getElementById('newItemPopular').checked;
+  const spicy = document.getElementById('newItemSpicy').checked;
+  
+  await fetch(API + '/api/menu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price, description, popular, spicy })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('menu', null);
+}
+
+async function showAddModifierModal() {
+  let categories = [];
+  try {
+    const catRes = await fetch(API + '/api/modifiers/categories');
+    categories = await catRes.json();
+  } catch(e) { console.error('Error loading categories:', e); }
+  const catOptions = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="text" id="newModName" placeholder="Modifier Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <label style="color:#888;font-size:12px;">Category</label>
+      <select id="newModCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <option value="">Select Category</option>
+        ${catOptions}
+      </select>
+      <input type="text" id="newModCategoryCustom" placeholder="Or type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+      <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('newModCategory').style.display='none';document.getElementById('newModCategoryCustom').style.display='block';this.style.display='none';document.getElementById('newModCategoryCustom').focus();">(+) Add new category</label>
+      <input type="number" id="newModPrice" placeholder="Additional Price (0 for free)" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveNewModifier()">Save</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Add Modifier';
+  document.getElementById('itemModal').style.display = 'block';
+}
+
+async function saveNewModifier() {
+  const name = document.getElementById('newModName').value;
+  if (!name) return alert('Name required');
+  const categorySelect = document.getElementById('newModCategory');
+  const categoryCustom = document.getElementById('newModCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
+  const price = parseFloat(document.getElementById('newModPrice').value) || 0;
+  
+  await fetch(API + '/api/modifiers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('modifiers', null);
+  // Reload to refresh datalist
+  setTimeout(() => location.reload(), 500);
+}
+
+async function editModifier(id, name, price, category) {
+  let categories = [];
+  try {
+    const catRes = await fetch(API + '/api/modifiers/categories');
+    categories = await catRes.json();
+  } catch(e) { console.error('Error loading categories:', e); }
+  const catOptions = categories.map(c => `<option value="${c}" ${c === category ? 'selected' : ''}>${c}</option>`).join('');
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="hidden" id="editModId" value="${id}">
+      <input type="text" id="editModName" placeholder="Modifier Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" value="${name}">
+      <select id="editModCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <option value="">Select Category</option>
+        ${catOptions}
+      </select>
+      <input type="text" id="editModCategoryCustom" placeholder="Or type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+      <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('editModCategory').style.display='none';document.getElementById('editModCategoryCustom').style.display='block';this.style.display='none';document.getElementById('editModCategoryCustom').focus();">(+) Add new category</label>
+      <input type="number" id="editModPrice" placeholder="Additional Price" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" value="${price}">
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveEditModifier()">Save</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Edit Modifier';
+  document.getElementById('itemModal').style.display = 'block';
+}
+
+function closeModifierModal() {
+  document.getElementById('itemModal').style.display = 'none';
+}
+
+async function saveEditModifier() {
+  const id = document.getElementById('editModId').value;
+  const name = document.getElementById('editModName').value;
+  if (!name) return alert('Name required');
+  const categorySelect = document.getElementById('editModCategory');
+  const categoryCustom = document.getElementById('editModCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
+  const price = parseFloat(document.getElementById('editModPrice').value) || 0;
+  await fetch(API + '/api/modifiers/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('modifiers', null);
+}
+
+function toggleStock() {
+  const current = localStorage.getItem('stock_enabled');
+  localStorage.setItem('stock_enabled', current === 'true' ? 'false' : 'true');
+  showSettingsTab('system', null);
+}
+
+async function editMenuItem(id) {
+  try {
+    const res = await fetch(API + '/api/menu/' + id, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
+    const item = await res.json();
+    // Get menu categories AND modifier categories (combine them)
+    const catRes = await fetch(API + '/api/menu/categories');
+    const menuCats = await catRes.json();
+    let modCats = [];
+    try {
+      const modCatRes = await fetch(API + '/api/modifiers/categories');
+      modCats = await modCatRes.json();
+    } catch(e) {}
+    const allCats = [...new Set([...menuCats, ...modCats])];
+    const catOptions = allCats.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`).join('');
+    
+    // Load existing modifiers for this item
+    const modRes = await fetch(API + '/api/menu/' + id + '/modifiers');
+    const existingMods = await modRes.json();
+    
+    const html = `
+      <div style="display:grid;gap:12px;">
+        <input type="text" id="editItemName" value="${item.name}" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <select id="editItemCategory" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+          <option value="">Select Category</option>
+          ${catOptions}
+        </select>
+        <input type="text" id="editItemCategoryCustom" placeholder="Or type new category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;display:none;">
+        <label style="color:#fff;font-size:12px;cursor:pointer;background:#333;padding:8px;border-radius:4px;width:fit-content;" onclick="document.getElementById('editItemCategory').style.display='none';document.getElementById('editItemCategoryCustom').style.display='block';this.style.display='none';document.getElementById('editItemCategoryCustom').focus();">(+) Add new category</label>
+        <input type="number" id="editItemPrice" value="${item.price}" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <input type="text" id="editItemDesc" value="${item.description || ''}" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="editItemPopular" ${item.popular ? 'checked' : ''}> Popular</label>
+        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="editItemSpicy" ${item.spicy ? 'checked' : ''}> Spicy</label>
+        
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid #333;">
+          <div style="font-weight:bold;margin-bottom:8px;color:#e94560;">MODIFIERS FOR THIS ITEM</div>
+          <div id="editItemModifiersList" style="display:grid;gap:8px;max-height:200px;overflow-y:auto;">
+            ${existingMods.length ? existingMods.map(m => `
+              <div style="display:flex;justify-content:space-between;align-items:center;background:#16213e;padding:8px;border-radius:4px;">
+                <span>${m.name} ${m.price ? '($'+m.price.toFixed(2)+')' : ''}</span>
+                <button class="btn small" style="background:#ff4444;" onclick="removeModifierFromItem(${m.id}, ${id})">×</button>
+              </div>
+            `).join('') : '<div style="color:#888;">No modifiers attached</div>'}
+          </div>
+          <button class="btn small" style="margin-top:8px;width:100%;" onclick="showAddModifierToItemModal(${id})">+ Add Modifier</button>
+        </div>
+        
+        <button class="btn" onclick="saveMenuItem(${id})">Save Changes</button>
+      </div>
+    `;
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalTitle').textContent = 'Edit Menu Item';
+    document.getElementById('itemModal').style.display = 'block';
+    document.getElementById('closeModal').onclick = () => document.getElementById('itemModal').style.display = 'none';
+  } catch(e) { alert('Error loading item'); }
+}
+
+async function removeModifierFromItem(modifierId, itemId) {
+  if (!confirm('Remove this modifier from the item?')) return;
+  try {
+    await fetch(API + '/api/modifiers/' + modifierId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }
+    });
+    editMenuItem(itemId); // Refresh the modal
+  } catch(e) { alert('Error removing modifier'); }
+}
+
+async function showAddModifierToItemModal(itemId) {
+  // Fetch all existing modifiers to show in dropdown
+  let allModifiers = [];
+  try {
+    const modRes = await fetch(API + '/api/modifiers');
+    allModifiers = await modRes.json();
+  } catch(e) { console.error('Error loading modifiers:', e); }
+  
+  // Get unique modifiers only (by name), grouped by category
+  const uniqueByName = {};
+  allModifiers.forEach(m => {
+    if (!uniqueByName[m.name] || m.category === 'size' || m.category === 'sweetness') {
+      uniqueByName[m.name] = m;
+    }
+  });
+  const uniqueMods = Object.values(uniqueByName);
+  
+  // Group by category
+  const byCategory = {};
+  uniqueMods.forEach(m => {
+    const cat = m.category || 'Other';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(m);
+  });
+  
+  // Build optgroup dropdown
+  let modOptions = '';
+  Object.keys(byCategory).sort().forEach(cat => {
+    modOptions += `<optgroup label="${cat.toUpperCase()}">`;
+    byCategory[cat].forEach(m => {
+      const priceStr = m.price > 0 ? ' +$' + m.price.toFixed(2) : '';
+      modOptions += `<option value="${m.id}" data-name="${m.name}" data-price="${m.price}" data-cat="${cat}">${m.name}${priceStr}</option>`;
+    });
+    modOptions += `</optgroup>`;
+  });
+  
+  const html = `
+    <div style="display:grid;gap:12px;">
+      <input type="hidden" id="addModItemId" value="${itemId}">
+      
+      <div style="margin-bottom:8px;"><strong>Select Existing Modifier</strong></div>
+      <select id="existingModSelect" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;" onchange="updateNewModFields()">
+        <option value="">-- Select a modifier --</option>
+        ${modOptions}
+      </select>
+      <button class="btn" style="background:#4ade80;width:100%;" onclick="attachExistingModifier(${itemId})">Add Selected</button>
+      
+      <div style="margin:16px 0;text-align:center;color:#888;">— OR CREATE NEW —</div>
+      
+      <input type="text" id="newModName" placeholder="New Modifier Name" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <input type="text" id="newModCategory" list="catOptsNew" placeholder="Category" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <datalist id="catOptsNew">
+        <option value="Size"><option value="Sweetness"><option value="Ice"><option value="Spice"><option value="Extras"><option value="Exclude">
+      </datalist>
+      <input type="number" id="newModPrice" placeholder="Additional Price (0 for free)" step="0.01" style="padding:12px;border-radius:8px;background:#1a1a2e;color:#fff;border:1px solid #333;">
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <button class="btn secondary" style="flex:1;" onclick="closeModifierModal()">Cancel</button>
+        <button class="btn" style="flex:2;background:#4ade80;" onclick="saveModifierToItem()">Create & Add</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalTitle').textContent = 'Add Modifier to Item';
+  document.getElementById('itemModal').style.display = 'block';
+}
+
+async function attachExistingModifier(itemId) {
+  const select = document.getElementById('existingModSelect');
+  const opt = select.options[select.selectedIndex];
+  if (!opt.value) return alert('Select a modifier first');
+  
+  const modId = opt.value;
+  await fetch(API + '/api/menu/' + itemId + '/modifiers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ 
+      name: opt.dataset.name, 
+      category: opt.dataset.cat, 
+      price: parseFloat(opt.dataset.price) || 0 
+    })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  editMenuItem(itemId);
+}
+
+function updateNewModFields() {
+  // Optional: auto-fill new fields when selecting existing modifier
+}
+
+async function saveModifierToItem() {
+  const itemId = document.getElementById('addModItemId').value;
+  const name = document.getElementById('newModName').value;
+  if (!name) return alert('Name required');
+  const category = document.getElementById('newModCategory').value;
+  const price = parseFloat(document.getElementById('newModPrice').value) || 0;
+  
+  await fetch(API + '/api/menu/' + itemId + '/modifiers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ name, category, price })
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  editMenuItem(itemId);
+  setTimeout(() => location.reload(), 500);
+}
+
+async function saveMenuItem(id) {
+  const categorySelect = document.getElementById('editItemCategory');
+  const categoryCustom = document.getElementById('editItemCategoryCustom');
+  const category = categorySelect.style.display === 'none' ? categoryCustom.value : categorySelect.value;
+  if (!category) return alert('Category required');
+  const data = {
+    name: document.getElementById('editItemName').value,
+    category: category,
+    price: parseFloat(document.getElementById('editItemPrice').value),
+    description: document.getElementById('editItemDesc').value,
+    popular: document.getElementById('editItemPopular').checked,
+    spicy: document.getElementById('editItemSpicy').checked
+  };
+  await fetch(API + '/api/menu/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify(data)
+  });
+  document.getElementById('itemModal').style.display = 'none';
+  showSettingsTab('menu', null);
+}
+
+async function updateStock(id) {
+  const stock = parseInt(document.getElementById('stock-' + id).value);
+  await fetch(API + '/api/menu/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ stock })
+  });
+  alert('Stock updated!');
+}
+
+async function removeStock(id) {
+  if (!confirm('Remove all stock? Set to 0?')) return;
+  await fetch(API + '/api/menu/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+    body: JSON.stringify({ stock: 0 })
+  });
+  document.getElementById('stock-' + id).value = 0;
+  alert('Stock removed!');
+}
+
+async function deleteModifier(id) {
+  if (!confirm('Delete this modifier?')) return;
+  await fetch(API + '/api/modifiers/' + id, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }
+  });
+  showSettingsTab('modifiers', null);
+}
 </script>
 
+
+<!-- Checkout Modal -->
+<div id="checkoutModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;overflow-y:auto;">
+  <div style="background:#1a1a2e;padding:20px;width:100%;max-width:450px;margin:0 auto;border-radius:12px;">
+    <h2 style="margin-bottom:20px;text-align:center;">Checkout</h2>
+    <div id="checkoutItems" style="max-height:200px;overflow-y:auto;margin-bottom:16px;"></div>
+    <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Subtotal:</span><span id="chkSubtotal">$0</span></div>
+      <div id="chkDiscount" style="display:none;justify-content:space-between;margin-bottom:8px;color:#ef4444;"></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8.25%):</span><span id="chkTax">$0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;border-top:1px solid #333;padding-top:8px;"><span>Total:</span><span id="chkTotal" style="color:#22c55e;">$0</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button class="btn" onclick="processPayment('cash')">Cash</button>
+      <button class="btn" onclick="processPayment('card')">Card</button>
+      <button class="btn secondary" onclick="document.getElementById('checkoutModal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Kitchen Screen -->
+<div id="kitchen" class="screen" style="display:none;">
+  <div class="header"><h1>Kitchen</h1><button class="btn small" onclick="loadKitchenOrders()">Refresh</button></div>
+  <div id="kitchenGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
+</div>
+
+<!-- Reports Screen -->
+<div id="reports" class="screen" style="display:none;">
+  <div class="header"><h1>Reports</h1></div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;">
+    <button class="btn small" onclick="showReport('sales')">Sales</button>
+    <button class="btn small" onclick="showReport('employees')">Employees</button>
+  </div>
+  <div id="reportContent"></div>
+</div>
+
+<!-- Settings Screen -->
+<div id="settings" class="screen" style="display:none;">
+  <div class="header"><h1>Settings</h1></div>
+  <div id="settingsContent"></div>
+</div>
 </body>
 </html>

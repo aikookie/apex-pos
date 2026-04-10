@@ -50,6 +50,9 @@ const Table = sequelize.define('Table', {
 // Order model
 const Order = sequelize.define('Order', {
   orderType: { type: DataTypes.ENUM('dinein','takeout'), defaultValue: 'dinein' },
+  subtotal: { type: DataTypes.FLOAT, defaultValue: 0 },
+  tax: { type: DataTypes.FLOAT, defaultValue: 0 },
+  discount: { type: DataTypes.FLOAT, defaultValue: 0 },
   total: { type: DataTypes.FLOAT, defaultValue: 0 },
   status: { type: DataTypes.ENUM('open','paid','canceled'), defaultValue: 'open' },
   StaffId: { type: DataTypes.INTEGER } // who created the order
