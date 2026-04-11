@@ -1,7 +1,17 @@
-◇ injecting env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
-DB synced
-Seeded staff
-Seeded menu with modifiers
-Seeded tables
-Seeded employees
-Apex POS on 5001
+/root/.openclaw/workspace/apex-pos/app.js:18
+function $(sel) { return document.querySelector(sel); }
+                  ^
+
+ReferenceError: document is not defined
+    at $ (/root/.openclaw/workspace/apex-pos/app.js:18:19)
+    at Object.<anonymous> (/root/.openclaw/workspace/apex-pos/app.js:183:1)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object..js (node:internal/modules/cjs/loader:1839:10)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49
+
+Node.js v22.22.0

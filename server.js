@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 // Note: Server serves from 'static' folder - no copy needed
 
-const { sequelize, Staff, MenuItem, MenuModifier, Table, Order, OrderItem, Payment, Setting, Employee, Shift } = require('./models');
+const { sequelize, Staff, MenuItem, MenuModifier, Table, Order, OrderItem, Payment, Setting, Employee, Shift, PrinterStation } = require('./models');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -270,6 +270,35 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       include: [MenuItem] 
     }]
   });
+  
+  // Auto-print to stations (fire and forget)
+  setTimeout(async () => {
+    try {
+      const stations = await PrinterStation.findAll({ where: { active: true } });
+      if (stations.length > 0) {
+        // Build filtered orders per station
+        for (const station of stations) {
+          const categories = (station.categories || '').split(',').map(c => c.trim().toLowerCase());
+          const isAll = categories.includes('*');
+          const matchingItems = (fullOrder.items || []).filter(item => {
+            const itemCat = (item.MenuItem?.category || '').toLowerCase();
+            return isAll || categories.includes(itemCat);
+          });
+          if (matchingItems.length > 0) {
+            const filtered = { ...fullOrder.toJSON(), items: matchingItems };
+            const content = buildKitchenSlip(filtered, station.name);
+            for (let i = 0; i < (station.printCopy || 1); i++) {
+              await printToStation(station, content);
+            }
+          }
+        }
+        console.log(`Auto-printed order #${order.id} to stations`);
+      }
+    } catch (e) {
+      console.error('Auto-print error:', e.message);
+    }
+  }, 500);
+  
   res.json(fullOrder);
 });
 
@@ -742,13 +771,64 @@ app.put('/api/inventory/:id', authMiddleware, adminOnly, async (req, res) => {
     lines.push('----------------');
     lines.push(`TOTAL: $${(order.total/100).toFixed(2)}`);
     lines.push('----------------');
-    lines.push(`Payment: ${order.Payments?.[0]?.method || 'N/A'}`);
+    
+    if (order.Payments?.[0]) {
+      lines.push(`Payment: ${order.Payments[0].method}`);
+      if (order.Payments[0].cashReceived) {
+        lines.push(`Cash: $${(order.Payments[0].cashReceived/100).toFixed(2)}`);
+        lines.push(`Change: $${(order.Payments[0].changeGiven/100).toFixed(2)}`);
+      }
+    }
     lines.push('');
     lines.push('Thank you!');
-    lines.push('');
-    lines.push('');
+    return lines.join('\n') + '\x1D\x56\x00'; // ESC/POS cut
+  }
+  
+  // Build kitchen/bar slip (no prices, just items)
+  function buildKitchenSlip(order, stationName) {
+    const lines = [];
+    lines.push('================');
+    lines.push(stationName.toUpperCase());
+    lines.push('================');
+    lines.push(`Order #${order.id}`);
+    lines.push(`Table: ${order.Table?.number || 'Takeout'}`);
+    lines.push(`Server: ${order.staff?.name || 'N/A'}`);
+    lines.push(`Time: ${new Date(order.createdAt).toLocaleTimeString()}`);
+    lines.push('----------------');
     
-    return lines.join('\n') + '\n';
+    for (const item of order.OrderItems || []) {
+      const qty = item.quantity;
+      const name = item.MenuItem?.name || 'Item';
+      lines.push(`** ${qty}x ${name} **`);
+      if (item.modifiers) {
+        const mods = typeof item.modifiers === 'string' ? JSON.parse(item.modifiers) : item.modifiers;
+        for (const m of mods) {
+          lines.push(`   + ${m.name}`);
+        }
+      }
+      if (item.remarks) {
+        lines.push(`   !! ${item.remarks}`);
+      }
+    }
+    
+    lines.push('================');
+    lines.push('');
+    return lines.join('\n') + '\x1D\x56\x00';
+  }
+  
+  // Print to a specific station
+  async function printToStation(station, content) {
+    if (!station.active) return { skipped: true, reason: 'inactive' };
+    try {
+      if (station.printerType === 'network') {
+        await printViaNetwork(station.printerHost, station.printerPort, content);
+        return { success: true, station: station.name };
+      } else {
+        return { success: false, reason: 'unsupported type: ' + station.printerType };
+      }
+    } catch (e) {
+      return { success: false, error: e.message, station: station.name };
+    }
   }
   
   // Get printer settings from DB
@@ -781,6 +861,53 @@ app.put('/api/inventory/:id', authMiddleware, adminOnly, async (req, res) => {
   app.get('/api/print/config', authMiddleware, async (req, res) => {
     const config = await getPrinterSettings();
     res.json(config);
+  });
+  
+  // ===== PRINTER STATIONS API =====
+  // Get all printer stations
+  app.get('/api/print/stations', authMiddleware, async (req, res) => {
+    const stations = await PrinterStation.findAll({ order: [['name', 'ASC']] });
+    res.json(stations);
+  });
+  
+  // Create printer station
+  app.post('/api/print/stations', authMiddleware, async (req, res) => {
+    const { name, printerType, printerHost, printerPort, printerName, categories, active, printCopy } = req.body;
+    const station = await PrinterStation.create({
+      name, printerType, printerHost, printerPort, printerName, categories, active, printCopy
+    });
+    res.json(station);
+  });
+  
+  // Update printer station
+  app.put('/api/print/stations/:id', authMiddleware, async (req, res) => {
+    const station = await PrinterStation.findByPk(req.params.id);
+    if (!station) return res.status(404).json({ error: 'Station not found' });
+    await station.update(req.body);
+    res.json(station);
+  });
+  
+  // Delete printer station
+  app.delete('/api/print/stations/:id', authMiddleware, async (req, res) => {
+    const station = await PrinterStation.findByPk(req.params.id);
+    if (!station) return res.status(404).json({ error: 'Station not found' });
+    await station.destroy();
+    res.json({ success: true });
+  });
+  
+  // Get stations for a specific category
+  app.get('/api/print/stations/for/:category', authMiddleware, async (req, res) => {
+    const { category } = req.params;
+    const stations = await PrinterStation.findAll({ 
+      where: { active: true },
+      order: [['name', 'ASC']]
+    });
+    // Filter stations that include this category
+    const matching = stations.filter(s => {
+      const cats = (s.categories || '').split(',').map(c => c.trim().toLowerCase());
+      return cats.includes('*') || cats.includes(category.toLowerCase());
+    });
+    res.json(matching);
   });
   
   // Main print endpoint
@@ -871,6 +998,51 @@ app.put('/api/inventory/:id', authMiddleware, adminOnly, async (req, res) => {
       console.error('Print error:', err.message);
       res.status(500).json({ error: 'Print failed: ' + err.message });
     }
+  });
+  
+  // Print order to multiple stations (kitchen, bar, etc.)
+  app.post('/api/print/order/:orderId', authMiddleware, async (req, res) => {
+    const { orderId } = req.params;
+    const order = await Order.findByPk(orderId, {
+      include: [
+        { model: Staff, as: 'staff' },
+        { model: Table },
+        { model: OrderItem, include: [{ model: MenuItem }] }
+      ]
+    });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    
+    // Get all active stations
+    const stations = await PrinterStation.findAll({ where: { active: true } });
+    const results = [];
+    
+    for (const station of stations) {
+      const categories = (station.categories || '').split(',').map(c => c.trim().toLowerCase());
+      const isAllStations = categories.includes('*');
+      
+      // Get items that match this station's categories
+      const matchingItems = (order.OrderItems || []).filter(item => {
+        const itemCat = (item.MenuItem?.category || '').toLowerCase();
+        return isAllStations || categories.includes(itemCat);
+      });
+      
+      if (matchingItems.length === 0) {
+        results.push({ station: station.name, skipped: true, reason: 'no items for category' });
+        continue;
+      }
+      
+      // Build a filtered order for this station
+      const filteredOrder = { ...order.toJSON(), OrderItems: matchingItems };
+      const content = buildKitchenSlip(filteredOrder, station.name);
+      
+      // Print multiple copies if configured
+      for (let i = 0; i < (station.printCopy || 1); i++) {
+        const result = await printToStation(station, content);
+        results.push(result);
+      }
+    }
+    
+    res.json({ orderId: order.id, results });
   });
 
   app.listen(PORT, () => console.log('Apex POS on ' + PORT));

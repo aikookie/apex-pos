@@ -99,6 +99,18 @@ const Setting = sequelize.define('Setting', {
   category: { type: DataTypes.STRING, defaultValue: 'general' }
 });
 
+// PrinterStation model (printer configurations for different stations)
+const PrinterStation = sequelize.define('PrinterStation', {
+  name: { type: DataTypes.STRING, allowNull: false }, // e.g., 'Kitchen', 'Bar', 'Receipt'
+  printerType: { type: DataTypes.ENUM('network','usb','bluetooth'), defaultValue: 'network' },
+  printerHost: DataTypes.STRING, // IP for network printer
+  printerPort: { type: DataTypes.INTEGER, defaultValue: 9100 },
+  printerName: DataTypes.STRING, // USB device name
+  categories: { type: DataTypes.TEXT, defaultValue: '' }, // comma-separated: 'meal,appetizer' or '*' for all
+  active: { type: DataTypes.BOOLEAN, defaultValue: true },
+  printCopy: { type: DataTypes.INTEGER, defaultValue: 1 } // number of copies
+});
+
 // Employee model (extended staff)
 const Employee = sequelize.define('Employee', {
   name: { type: DataTypes.STRING, allowNull: false },
@@ -134,5 +146,6 @@ module.exports = {
   Payment,
   Setting,
   Employee,
-  Shift
+  Shift,
+  PrinterStation
 };

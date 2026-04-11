@@ -1661,6 +1661,16 @@ function calculateChange() {
   }
 }
 
+function setExactChange() {
+  var totalEl = document.getElementById('chkTotal');
+  var total = totalEl ? (parseFloat(totalEl.textContent.replace('$','').replace(',','')) || 0) : 0;
+  var inputEl = document.getElementById('cashReceived');
+  if (inputEl && total > 0) {
+    inputEl.value = total.toFixed(2);
+    calculateChange();
+  }
+}
+
 function confirmPayment() {
   var method = document.getElementById('selectedPaymentMethod').value;
   if (!method) return alert('Please select a payment method first!');
@@ -1823,6 +1833,7 @@ async function loadSettings() {
       <button class="btn small active" onclick="showSettingsTab('menu', this)">Menu Items</button>
       <button class="btn small" onclick="showSettingsTab('modifiers', this)">Modifiers</button>
       <button class="btn small" onclick="showSettingsTab('stock', this)">Stock</button>
+      <button class="btn small" onclick="showSettingsTab('printers', this)">Printers</button>
       <button class="btn small" onclick="showSettingsTab('system', this)">System</button>
     </div>
     <div id="settingsTabContent">Loading...</div>
@@ -1910,6 +1921,52 @@ async function showSettingsTab(tab, btn) {
         </div>
       `;
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
+  } else if (tab === 'printers') {
+    try {
+      const res = await fetch(API + '/api/print/stations', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') } });
+      const stations = await res.json();
+      const categories = ['meal','appetizer','drink','*'];
+      content.innerHTML = `
+        <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
+          <div style="font-weight:bold;margin-bottom:12px;">Add Printer Station</div>
+          <input type="text" id="newStationName" placeholder="Station Name (e.g. Kitchen)" 
+            style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+          <input type="text" id="newStationHost" placeholder="Printer IP (e.g. 192.168.1.100)" 
+            style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+          <input type="number" id="newStationPort" placeholder="Port (default 9100)" value="9100"
+            style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+          <div style="margin-bottom:8px;">
+            <div style="font-size:12px;color:#888;margin-bottom:4px;">Categories (comma-separated)</div>
+            <input type="text" id="newStationCats" placeholder="meal,appetizer or * for all" 
+              style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+            <input type="checkbox" id="newStationActive" checked style="width:20px;height:20px;">
+            <span>Active</span>
+            <input type="number" id="newStationCopy" value="1" min="1" max="5" 
+              style="width:60px;padding:8px;margin-left:auto;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+            <span>Copies</span>
+          </div>
+          <button class="btn" onclick="addPrinterStation()" style="background:#4ade80;width:100%;">Add Station</button>
+        </div>
+        <div style="font-weight:bold;margin-bottom:12px;">Printer Stations (${stations.length})</div>
+        ${stations.map(s => `
+          <div style="background:#16213e;padding:12px;border-radius:8px;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-weight:bold;color:${s.active ? '#4ade80' : '#666'}">${s.name}</span>
+              <div>
+                <button class="btn small" onclick="toggleStation(${s.id}, ${!s.active})" style="padding:4px 8px;">${s.active ? 'Disable' : 'Enable'}</button>
+                <button class="btn small" onclick="deleteStation(${s.id})" style="padding:4px 8px;background:#ff4444;">Delete</button>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#888;">IP: ${s.printerHost}:${s.printerPort}</div>
+            <div style="font-size:12px;color:#888;">Categories: ${s.categories}</div>
+            <div style="font-size:12px;color:#888;">Copies: ${s.printCopy}</div>
+          </div>
+        `).join('')}
+        ${stations.length === 0 ? '<div style="color:#888;text-align:center;padding:20px;">No printer stations configured</div>' : ''}
+      `;
+    } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading printers - Admin required</div>'; }
   } else if (tab === 'system') {
     const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
     const restName = localStorage.getItem('restaurant_name') || 'APEX POS';
@@ -2119,6 +2176,51 @@ function saveRestaurantInfo() {
   }).catch(() => {});
   
   alert('Restaurant info saved!');
+}
+
+async function addPrinterStation() {
+  const name = document.getElementById('newStationName').value.trim();
+  const host = document.getElementById('newStationHost').value.trim();
+  const port = parseInt(document.getElementById('newStationPort').value) || 9100;
+  const cats = document.getElementById('newStationCats').value.trim();
+  const active = document.getElementById('newStationActive').checked;
+  const copies = parseInt(document.getElementById('newStationCopy').value) || 1;
+  
+  if (!name || !host) return alert('Name and IP required');
+  
+  try {
+    await fetch(API + '/api/print/stations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+      body: JSON.stringify({
+        name, printerType: 'network', printerHost: host, printerPort: port,
+        categories: cats, active, printCopy: copies
+      })
+    });
+    showSettingsTab('printers', null);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function toggleStation(id, active) {
+  try {
+    await fetch(API + '/api/print/stations/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+      body: JSON.stringify({ active })
+    });
+    showSettingsTab('printers', null);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteStation(id) {
+  if (!confirm('Delete this printer station?')) return;
+  try {
+    await fetch(API + '/api/print/stations/' + id, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }
+    });
+    showSettingsTab('printers', null);
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 async function editMenuItem(id) {
@@ -2432,8 +2534,8 @@ function resetCheckout() {
         <div>
           <div style="font-size:11px;color:#888;margin-bottom:4px;">Cash Received $</div>
           <div style="display:flex;gap:4px;">
-          <input type="text" inputmode="decimal" id="cashReceived" placeholder="0.00" oninput="calculateChange()" onkeyup="calculateChange()" onchange="calculateChange()" style="flex:1;padding:10px;border-radius:8px;background:#1a1a2e;border:1px solid #333;color:#fff;font-size:16px;text-align:center;">
-          <button type="button" onclick="calculateChange(); var c=document.getElementById('changeAmount'); if(c) alert('Change: $'+c.textContent)" style="padding:10px 16px;border-radius:8px;background:#e94560;color:#fff;border:none;font-weight:bold;">$</button>
+          <input type="text" inputmode="decimal" id="cashReceived" placeholder="0.00" oninput="calculateChange()" onkeyup="calculateChange()" onchange="calculateChange()" style="width:90px;padding:10px;border-radius:8px;background:#1a1a2e;border:1px solid #333;color:#fff;font-size:16px;text-align:center;">
+          <button type="button" onclick="setExactChange()" style="padding:10px 12px;border-radius:8px;background:#22c55e;color:#fff;border:none;font-weight:bold;font-size:12px;white-space:nowrap;">Exact Change</button>
         </div>
         </div>
         <div>
