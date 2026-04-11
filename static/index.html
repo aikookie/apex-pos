@@ -1086,13 +1086,14 @@ function renderOrders() {
           <span style="color:#555;font-size:12px;margin-left:8px;">${time}</span>
         </div>
         <span class="status ${o.status}">${o.status}</span>
+        ${o.status !== 'completed' ? '<button class="btn small" style="background:#22c55e;margin-left:8px;" onclick="completeOrder(' + o.id + ')">Completed</button>' : ''}
       </div>
       <div class="items">${itemSummary}</div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
         <div class="total">$${o.total.toFixed(2)}</div>
         <div style="display:flex; gap:4px;flex-wrap:wrap;justify-content:flex-end;">
           <button class="btn small" style="background:#3b82f6;" onclick="viewReceipt(${o.id})">🧾 Receipt</button>
-          ${o.status !== 'completed' ? '<button class="btn small" style="background:#22c55e;" onclick="completeOrder(' + o.id + ')">✓ Done</button>' : ''}
+          <button class="btn small" style="background:#e94560;" onclick="cancelOrder(${o.id})" ${o.status === 'canceled' || o.status === 'completed' ? 'disabled' : ''}>Cancel</button>
           <button class="btn small secondary" onclick="voidOrder(${o.id})" ${o.status === 'canceled' || o.status === 'completed' ? 'disabled' : ''}>Void</button>
         </div>
       </div>
@@ -1217,7 +1218,25 @@ async function completeOrder(orderId) {
       body: JSON.stringify({ status: 'completed' })
     });
     loadOrders();
+    loadKitchenOrders();
     alert('Order completed!');
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function cancelOrder(orderId) {
+  if (!confirm('Delete this order completely?')) return;
+  try {
+    await fetch(API + '/api/orders/' + orderId, {
+      method: 'DELETE',
+      headers: { 
+        'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+      }
+    });
+    loadOrders();
+    loadKitchenOrders();
+    alert('Order deleted!');
   } catch(e) {
     alert('Error: ' + e.message);
   }
@@ -1970,6 +1989,7 @@ async function loadKitchenOrders() {
 async function markReady(id) {
   await fetch(API + '/api/kitchen/orders/' + id + '/ready', { method: 'PUT', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') }});
   loadKitchenOrders();
+  loadOrders();
 }
 
 async function showReport(type) {
