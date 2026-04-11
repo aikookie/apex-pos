@@ -1157,12 +1157,10 @@ async function viewReceipt(orderId) {
         const mQty = modQty[m.id] || 1;
         lines.push('<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + (mQty > 1 ? ' x' + mQty : '') + '</div>');
       });
-      if (i.remarks) {
-        const modNamesList = mods.map(m => m.name.toLowerCase());
-        const hasUniqueRemarks = !modNamesList.some(m => i.remarks.toLowerCase().includes(m));
-        if (hasUniqueRemarks) {
-          lines.push('<div style="padding-left:12px;font-size:10px;color:#e94560;font-style:italic;">* ' + i.remarks + '</div>');
-        }
+      // Always show remarks
+      const remarks = i.remarks || order.remarks;
+      if (remarks) {
+        lines.push('<div style="padding-left:12px;font-size:10px;color:#e94560;font-style:italic;">* ' + remarks + '</div>');
       }
       return lines.join('');
     }).join('');
