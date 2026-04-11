@@ -392,7 +392,7 @@ app.post('/api/payments', async (req, res) => {
     });
   }
   
-  await order.update({ status: 'paid', tip: order.tip + tip });
+  await order.update({ tip: order.tip + tip }); // Keep status as 'open' for kitchen visibility
   
   // Free up table
   const table = await Table.findByPk(order.TableId);
