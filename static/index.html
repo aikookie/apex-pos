@@ -1087,10 +1087,10 @@ function renderOrders() {
       <div class="items">${itemSummary}</div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
         <div class="total">$${o.total.toFixed(2)}</div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn small" onclick="viewOrder(${o.id})">View</button>
-          <button class="btn small secondary" onclick="voidOrder(${o.id})" ${o.status === 'canceled' ? 'disabled' : ''}>Void</button>
-          <button class="btn small" style="background:#c73e3e;" onclick="deleteOrder(${o.id})">Delete</button>
+        <div style="display:flex; gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+          <button class="btn small" style="background:#3b82f6;" onclick="viewReceipt(${o.id})">🧾 Receipt</button>
+          ${o.status !== 'completed' ? '<button class="btn small" style="background:#22c55e;" onclick="completeOrder(' + o.id + ')">✓ Done</button>' : ''}
+          <button class="btn small secondary" onclick="voidOrder(${o.id})" ${o.status === 'canceled' || o.status === 'completed' ? 'disabled' : ''}>Void</button>
         </div>
       </div>
     </div>
@@ -1135,6 +1135,65 @@ async function viewOrder(orderId) {
     document.body.appendChild(modal);
   } catch(e) {
     alert('Error loading order: ' + e.message);
+  }
+}
+
+async function viewReceipt(orderId) {
+  try {
+    const res = await fetch(API + '/api/orders/' + orderId);
+    const order = await res.json();
+    
+    const itemsHtml = (order.items || []).map(i => {
+      const name = i.MenuItem?.name || i.name || 'Item #' + i.menuItemId;
+      const mods = i.modifiers ? (typeof i.modifiers === 'string' ? JSON.parse(i.modifiers) : i.modifiers) : [];
+      const modStr = mods.length ? '<div style="padding-left:10px;font-size:11px;color:#666;">' + mods.map(m => '+ ' + m.name).join('<br>') + '</div>' : '';
+      return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;"><div>' + i.quantity + 'x ' + name + modStr + '</div><div>$' + (i.price * i.quantity).toFixed(2) + '</div></div>';
+    }).join('');
+    
+    const modal = document.createElement('div');
+    modal.id = 'receiptModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+    modal.innerHTML = `
+      <div style="background:#fff;color:#222;padding:24px;border-radius:12px;width:90%;max-width:350px;font-family:'Courier New',monospace;font-size:13px;">
+        <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:12px;">
+          <strong style="font-size:18px;">APEX POS</strong><br>
+          <span style="font-size:11px;">${new Date(order.createdAt).toLocaleString()}</span>
+        </div>
+        <div style="margin-bottom:8px;"><strong>Order #${order.id}</strong> | Table ${order.Table?.number || order.TableId}</div>
+        <div style="border-top:1px dashed #ccc;margin:8px 0;padding-top:8px;">
+          ${itemsHtml}
+        </div>
+        <div style="border-top:2px solid #000;margin:8px 0;padding-top:8px;">
+          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>$${order.subtotal?.toFixed(2) || '0.00'}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Tax:</span><span>$${order.tax?.toFixed(2) || '0.00'}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Tip:</span><span>$${order.tip?.toFixed(2) || '0.00'}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin-top:6px;"><span>TOTAL:</span><span>$${order.total?.toFixed(2) || '0.00'}</span></div>
+        </div>
+        <div style="text-align:center;margin-top:16px;font-size:11px;">Thank you! 🍕</div>
+        <button class="btn" style="width:100%;margin-top:16px;background:#e94560;" onclick="this.closest('#receiptModal').remove()">Close</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch(e) {
+    alert('Error loading receipt: ' + e.message);
+  }
+}
+
+async function completeOrder(orderId) {
+  if (!confirm('Mark this order as completed?')) return;
+  try {
+    await fetch(API + '/api/orders/' + orderId, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('apex_token')
+      },
+      body: JSON.stringify({ status: 'completed' })
+    });
+    loadOrders();
+    alert('Order completed!');
+  } catch(e) {
+    alert('Error: ' + e.message);
   }
 }
 
@@ -1856,7 +1915,7 @@ async function loadKitchenOrders() {
     grid.innerHTML = orders.map(o => {
       const age = Math.floor((Date.now() - new Date(o.createdAt))/60000);
       const color = age > 15 ? '#ff4444' : age > 10 ? '#ffaa00' : '#4ade80';
-      const items = (o.items || []).map(i => '<div style="padding:6px;background:#1a1a2e;border-radius:4px;margin-bottom:4px;">' + i.qty + 'x ' + i.name + (i.remarks ? '<br><small style=color:#888>' + i.remarks + '</small>' : '') + '</div>').join('');
+      const items = (o.items || []).map(i => '<div style="padding:6px;background:#1a1a2e;border-radius:4px;margin-bottom:4px;">' + i.quantity + 'x ' + (i.MenuItem?.name || i.name || 'Item') + (i.remarks ? '<br><small style=color:#888>' + i.remarks + '</small>' : '') + '</div>').join('');
       return '<div style="background:#16213e;border-radius:12px;padding:12px;border-left:4px solid ' + color + '"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><strong>#' + o.id + '</strong><span style="color:' + color + '">' + age + ' min</span></div>' + items + '<button class="btn" style="width:100%;margin-top:8px;background:#4ade80;" onclick="markReady(' + o.id + ')">Ready</button></div>';
     }).join('');
   } catch(e) { document.getElementById('kitchenGrid').innerHTML = '<div style=color:#ff4444>Error loading orders</div>'; }
