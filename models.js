@@ -64,6 +64,7 @@ const OrderItem = sequelize.define('OrderItem', {
   quantity: { type: DataTypes.INTEGER, allowNull: false },
   price: { type: DataTypes.FLOAT, allowNull: false }, // price per unit at time of order
   modifiers: { type: DataTypes.TEXT }, // JSON string of selected modifiers
+  modifierQty: { type: DataTypes.TEXT }, // JSON string of modifier quantities
   remarks: { type: DataTypes.TEXT } // customer special requests
 });
 

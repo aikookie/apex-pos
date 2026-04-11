@@ -203,13 +203,17 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'Table ID and items required' });
   }
   
-  // Calculate total with modifiers
+  // Calculate total with modifiers (including modifier quantities)
   let subtotal = 0;
   for (const item of items) {
     const itemTotal = item.price * item.qty;
     let modifierTotal = 0;
     if (item.modifiers && Array.isArray(item.modifiers)) {
-      modifierTotal = item.modifiers.reduce((sum, m) => sum + (m.price || 0), 0) * item.qty;
+      const mQty = item.modifierQty || {};
+      modifierTotal = item.modifiers.reduce((sum, m) => {
+        const qty = mQty[m.id] || 1;
+        return sum + ((m.price || 0) * qty * item.qty);
+      }, 0);
     }
     subtotal += itemTotal + modifierTotal;
   }
@@ -244,6 +248,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
   
   for (const item of items) {
     const modifiersJson = item.modifiers ? JSON.stringify(item.modifiers) : null;
+    const modifierQtyJson = item.modifierQty ? JSON.stringify(item.modifierQty) : null;
     const menuItemId = item.menuItemId || item.id;
     await OrderItem.create({
       orderId: order.id,
@@ -251,6 +256,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       quantity: item.qty,
       price: item.price,
       modifiers: modifiersJson,
+      modifierQty: modifierQtyJson,
       remarks: item.remarks || null
     });
     

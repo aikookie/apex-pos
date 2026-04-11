@@ -1150,13 +1150,16 @@ async function viewReceipt(orderId) {
     let itemsHtml = (order.items || []).map(i => {
       const name = i.MenuItem?.name || i.name || 'Item';
       const mods = i.modifiers ? (typeof i.modifiers === 'string' ? JSON.parse(i.modifiers) : i.modifiers) : [];
+      const mQty = i.modifierQty ? (typeof i.modifierQty === 'string' ? JSON.parse(i.modifierQty) : i.modifierQty) : {};
       const basePrice = i.price;
-      // Use stored subtotal for this item (or calculate from stored)
-      const itemTotal = basePrice * i.quantity;
+      // Calculate modifier total
+      const modTotal = mods.reduce((sum, m) => sum + ((m.price || 0) * (mQty[m.id] || 1) * i.quantity), 0);
+      const itemTotal = (basePrice * i.quantity) + modTotal;
       let lines = [];
       lines.push('<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>' + i.quantity + 'x ' + name + '</span><span style="font-weight:bold;">$' + itemTotal.toFixed(2) + '</span></div>');
       mods.forEach(m => {
-        lines.push('<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + '</div>');
+        const qty = mQty[m.id] || 1;
+        lines.push('<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + (qty > 1 ? ' x' + qty : '') + '</div>');
       });
       // Always show remarks
       const remarks = i.remarks || order.remarks;
@@ -1863,6 +1866,7 @@ async function processPayment(method) {
       qty: c.qty,
       price: c.basePrice || c.price,
       modifiers: c.modifiers || [],
+      modifierQty: c.modifierQty || {},
       remarks: c.remarks || null
     })),
     subtotal,
