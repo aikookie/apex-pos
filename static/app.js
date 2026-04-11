@@ -11,6 +11,8 @@ let state = {
   cart: [],
   selectedTable: null,
   discount: { type: 'percent', value: 0 },
+  tip: 0,
+  tipPercent: null,
   currentView: 'menu'
 };
 
@@ -272,30 +274,75 @@ $('#checkoutBtn').onclick = () => {
   openCheckoutModal();
 };
 
-async function openCheckoutModal() {
-  let total = state.cart.reduce((s, item) => {
+// Tip calculation helper
+function calculateCheckoutTotals() {
+  let subtotal = state.cart.reduce((s, item) => {
     const modPrice = item.modifiers ? item.modifiers.reduce((m, x) => m + x.price, 0) : 0;
     return s + (item.price + modPrice) * (item.qty || 1);
   }, 0);
   
+  let discount = 0;
   if (state.discount.value > 0) {
     if (state.discount.type === 'percent') {
-      total = total * (1 - state.discount.value / 100);
+      discount = subtotal * (state.discount.value / 100);
     } else {
-      total = total - (state.discount.value * 100);
+      discount = state.discount.value * 100;
     }
   }
   
+  let afterDiscount = subtotal - discount;
+  let tax = afterDiscount * 0.0875; // 8.75% tax
+  let tip = state.tip || 0;
+  let total = afterDiscount + tax + tip;
+  
+  return { subtotal, discount, afterDiscount, tax, tip, total };
+}
+
+async function openCheckoutModal() {
+  const { subtotal, discount, afterDiscount, tax, tip, total } = calculateCheckoutTotals();
+  const tableNum = state.tables.find(t => t.id === state.selectedTable)?.number || state.selectedTable;
+  
+  const tipButtons = [0, 15, 18, 20].map(pct => `
+    <button class="tip-btn ${state.tipPercent === pct ? 'active' : ''}" data-pct="${pct}"
+      style="padding:0.5rem 1rem;border:1px solid ${state.tipPercent === pct ? '#22c55e' : '#e2e8f0'};background:${state.tipPercent === pct ? '#22c55e' : '#fff'};color:${state.tipPercent === pct ? '#fff' : '#333'};border-radius:6px;cursor:pointer;font-weight:bold;">
+      ${pct === 0 ? 'No Tip' : pct + '%'}
+    </button>
+  `).join('');
+  
   const body = `
-    <div style="padding:1rem;">
-      <h3>Order Summary</h3>
-      <p><strong>Table:</strong> ${state.tables.find(t => t.id === state.selectedTable)?.number || state.selectedTable}</p>
+    <div style="padding:1rem;max-height:70vh;overflow-y:auto;">
+      <h3 style="margin-top:0;">💰 Checkout</h3>
+      <p><strong>Table:</strong> ${tableNum}</p>
       <p><strong>Items:</strong> ${state.cart.length}</p>
-      <p><strong>Subtotal:</strong> $${fmtMoney(total)}</p>
-      ${state.discount.value > 0 ? `<p><strong>Discount:</strong> ${state.discount.value}${state.discount.type === 'percent' ? '%' : '$'}</p>` : ''}
-      <hr style="margin:1rem 0;">
-      <h2 style="color:#22c55e;">Total: $${fmtMoney(Math.max(0, total))}</h2>
       
+      <!-- Tip Section -->
+      <div style="margin:1rem 0;">
+        <label style="font-weight:bold;display:block;margin-bottom:0.5rem;">Add Tip</label>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">${tipButtons}</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span style="font-size:0.9rem;">Custom: $</span>
+          <input type="number" id="customTip" placeholder="0.00" step="0.01" min="0"
+            style="width:100px;padding:0.5rem;border:1px solid #e2e8f0;border-radius:6px;"
+            onchange="setCustomTip(this.value)">
+        </div>
+      </div>
+      
+      <hr style="margin:1rem 0;border-color:#e2e8f0;">
+      
+      <!-- Order Summary -->
+      <div style="background:#f8fafc;padding:1rem;border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;">
+          <span>Subtotal:</span><span>$${fmtMoney(subtotal)}</span>
+        </div>
+        ${discount > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;color:#ef4444;"><span>Discount:</span><span>-$${fmtMoney(discount)}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;"><span>Tax (8.75%):</span><span>$${fmtMoney(tax)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;"><span>Tip:</span><span>$${fmtMoney(tip)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:1.25rem;font-weight:bold;border-top:2px solid #e2e8f0;padding-top:0.5rem;margin-top:0.5rem;">
+          <span>Total:</span><span style="color:#22c55e;">$${fmtMoney(total)}</span>
+        </div>
+      </div>
+      
+      <!-- Payment Method -->
       <div class="form-group" style="margin-top:1rem;">
         <label><strong>Payment Method</strong></label>
         <select id="paymentMethod" style="width:100%;padding:0.75rem;border:1px solid #e2e8f0;border-radius:8px;">
@@ -304,18 +351,78 @@ async function openCheckoutModal() {
           <option value="zelle">Zelle</option>
         </select>
       </div>
+      
+      <!-- Receipt Preview Toggle -->
+      <button type="button" onclick="toggleReceiptPreview()" 
+        style="width:100%;margin-top:1rem;padding:0.75rem;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;font-weight:bold;">
+        📄 Preview Receipt
+      </button>
+      
+      <!-- Receipt Preview (hidden by default) -->
+      <div id="receiptPreview" style="display:none;margin-top:1rem;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;font-family:monospace;font-size:0.85rem;">
+        <div style="text-align:center;border-bottom:1px dashed #ccc;padding-bottom:0.5rem;margin-bottom:0.5rem;">
+          <strong>APEX POS</strong><br>
+          <span style="font-size:0.8rem;">${new Date().toLocaleString()}</span>
+        </div>
+        <div><strong>Table:</strong> ${tableNum}</div>
+        <div style="margin-top:0.5rem;">
+          ${state.cart.map(item => `
+            <div style="display:flex;justify-content:space-between;">
+              <span>${item.qty || 1}x ${item.name}</span>
+              <span>$${fmtMoney((item.price + (item.modifiers?.reduce((m,x)=>m+x.price,0)||0)) * (item.qty||1))}</span>
+            </div>
+            ${item.modifiers?.length ? item.modifiers.map(m => `<div style="padding-left:1rem;font-size:0.8rem;color:#666;">+ ${m.name} $${fmtMoney(m.price)}</div>`).join('') : ''}
+          `).join('')}
+        </div>
+        <div style="border-top:1px dashed #ccc;margin:0.5rem 0;padding-top:0.5rem;">
+          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>$${fmtMoney(subtotal)}</span></div>
+          ${discount > 0 ? `<div style="display:flex;justify-content:space-between;color:#ef4444;"><span>Discount:</span><span>-$${fmtMoney(discount)}</span></div>` : ''}
+          <div style="display:flex;justify-content:space-between;"><span>Tax:</span><span>$${fmtMoney(tax)}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Tip:</span><span>$${fmtMoney(tip)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:1.1rem;margin-top:0.25rem;"><span>TOTAL:</span><span>$${fmtMoney(total)}</span></div>
+        </div>
+        <div style="text-align:center;margin-top:1rem;font-size:0.8rem;color:#666;">Thank you! 🍕</div>
+      </div>
     </div>
   `;
   
   $('#checkoutBody').innerHTML = body;
+  
+  // Attach tip button handlers
+  document.querySelectorAll('.tip-btn').forEach(btn => {
+    btn.onclick = () => {
+      const pct = parseInt(btn.dataset.pct);
+      state.tipPercent = pct;
+      if (pct > 0) {
+        state.tip = afterDiscount * (pct / 100);
+      } else {
+        state.tip = 0;
+      }
+      openCheckoutModal(); // Re-render
+    };
+  });
+  
   $('#checkoutModal').classList.add('show');
 }
+
+// Global function for custom tip
+window.setCustomTip = function(val) {
+  state.tipPercent = null;
+  state.tip = parseFloat(val) || 0;
+  openCheckoutModal();
+};
+
+window.toggleReceiptPreview = function() {
+  const el = $('#receiptPreview');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
 
 $('#cancelCheckoutBtn').onclick = () => $('#checkoutModal').classList.remove('show');
 $('#closeCheckoutBtn').onclick = () => $('#checkoutModal').classList.remove('show');
 
 $('#processPaymentBtn').onclick = async () => {
   try {
+    const { total, tip } = calculateCheckoutTotals();
     const items = state.cart.map(item => ({
       menuItemId: item.id,
       price: item.price,
@@ -327,7 +434,8 @@ $('#processPaymentBtn').onclick = async () => {
       tableId: state.selectedTable,
       staffId: state.user.id,
       items,
-      discount: state.discount.value > 0 ? { type: state.discount.type, value: state.discount.value } : { type: 'percent', value: 0 }
+      discount: state.discount.value > 0 ? { type: state.discount.type, value: state.discount.value } : { type: 'percent', value: 0 },
+      tip: tip
     };
     
     const order = await apiCall('/api/orders', { method: 'POST', body: JSON.stringify(orderData) });
@@ -336,13 +444,15 @@ $('#processPaymentBtn').onclick = async () => {
     const method = $('#paymentMethod').value;
     await apiCall('/api/payments', {
       method: 'POST',
-      body: JSON.stringify({ amount: order.total, method, orderId: order.id })
+      body: JSON.stringify({ amount: total, method, orderId: order.id, tip: tip })
     });
     
     alert(`Order #${order.id} created and paid successfully!`);
     $('#checkoutModal').classList.remove('show');
     state.cart = [];
     state.discount = { type: 'percent', value: 0 };
+    state.tip = 0;
+    state.tipPercent = null;
     state.selectedTable = null;
     updateCartUI();
     loadTables();

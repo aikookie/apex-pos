@@ -198,7 +198,7 @@ app.get('/api/orders/:id', async (req, res) => {
 });
 
 app.post('/api/orders', authMiddleware, async (req, res) => {
-  const { tableId, items, orderType = 'dinein', staffId, discount = 0 } = req.body;
+  const { tableId, items, orderType = 'dinein', staffId, discount = 0, tip = 0 } = req.body;
   if (!tableId || !items || !items.length) {
     return res.status(400).json({ error: 'Table ID and items required' });
   }
@@ -227,7 +227,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
   
   const taxableAmount = subtotal - discountAmount;
   const tax = Math.round(taxableAmount * (taxRate / 100));
-  const total = taxableAmount + tax;
+  const total = taxableAmount + tax + tip;
   
   const order = await Order.create({
     TableId: tableId,
@@ -236,6 +236,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
     status: 'open',
     subtotal,
     tax,
+    tip,
     total,
     discount: discountAmount,
     notes: discount.reason || ''
@@ -333,7 +334,7 @@ app.post('/api/orders/:id/void', authMiddleware, async (req, res) => {
 
 // ============ Payments ============
 app.post('/api/payments', async (req, res) => {
-  const { orderId, amount, method, splits = [] } = req.body;
+  const { orderId, amount, method, tip = 0, splits = [] } = req.body;
   const order = await Order.findByPk(orderId);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   
@@ -345,6 +346,7 @@ app.post('/api/payments', async (req, res) => {
       await Payment.create({
         orderId: orderId,
         amount: split.amount,
+        tip: split.tip || 0,
         method: split.method,
         status: 'completed',
         transactionId: split.transactionId || null
@@ -354,12 +356,13 @@ app.post('/api/payments', async (req, res) => {
     await Payment.create({
       orderId: orderId,
       amount: paidAmount,
+      tip: tip,
       method: method || 'cash',
       status: 'completed'
     });
   }
   
-  await order.update({ status: 'paid' });
+  await order.update({ status: 'paid', tip: order.tip + tip });
   
   // Free up table
   const table = await Table.findByPk(order.TableId);
@@ -586,7 +589,15 @@ app.get('/api/settings/:key', async (req, res) => {
   res.json(setting ? setting.value : null);
 });
 
-app.put('/api/settings/:key', authMiddleware, adminOnly, async (req, res) => {
+// Public settings (restaurant name, address for receipts)
+const publicSettings = ['restaurant_name', 'restaurant_address', 'taxRate', 'businessHours'];
+
+app.put('/api/settings/:key', async (req, res) => {
+  const key = req.params.key;
+  // Allow public settings without auth
+  if (!publicSettings.includes(key)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const { value, category = 'general' } = req.body;
   const [setting, created] = await Setting.upsert({
     key: req.params.key,

@@ -1,62 +1,27 @@
-◇ injecting env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injecting env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
 DB synced
 Seeded staff
 Seeded menu with modifiers
 Seeded tables
 Seeded employees
-Apex POS on 5001
-/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:50
-      throw new sequelizeError.ValidationError(null, this.errors);
-            ^
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
 
-ValidationError [SequelizeValidationError]: notNull Violation: OrderItem.price cannot be null
-    at InstanceValidator._validate (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:50:13)
-    at async InstanceValidator._validateAndRunHooks (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:60:7)
-    at async InstanceValidator.validate (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/instance-validator.js:54:12)
-    at async model.save (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/model.js:2426:7)
-    at async OrderItem.create (/root/.openclaw/workspace/apex-pos/node_modules/sequelize/lib/model.js:1362:12)
-    at async /root/.openclaw/workspace/apex-pos/server.js:246:5 {
-  errors: [
-    ValidationErrorItem {
-      message: 'OrderItem.price cannot be null',
-      type: 'notNull Violation',
-      path: 'price',
-      value: null,
-      origin: 'CORE',
-      instance: OrderItem {
-        dataValues: {
-          id: null,
-          orderId: 3,
-          menuItemId: undefined,
-          quantity: 1,
-          price: undefined,
-          modifiers: '[{"id":1,"name":"Extra Spicy","price":0,"qty":1},{"id":2,"name":"Add Rice (+$2.00)","price":2,"qty":1}]',
-          updatedAt: 2026-04-10T21:34:49.999Z,
-          createdAt: 2026-04-10T21:34:49.999Z
-        },
-        _previousDataValues: {
-          orderId: undefined,
-          quantity: undefined,
-          modifiers: undefined
-        },
-        uniqno: 1,
-        _changed: Set(3) { 'orderId', 'quantity', 'modifiers' },
-        _options: {
-          isNewRecord: true,
-          _schema: null,
-          _schemaDelimiter: '',
-          attributes: undefined,
-          include: undefined,
-          raw: undefined,
-          silent: undefined
-        },
-        isNewRecord: true
-      },
-      validatorKey: 'is_null',
-      validatorName: null,
-      validatorArgs: []
-    }
-  ]
+Error: listen EADDRINUSE: address already in use :::5001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (/root/.openclaw/workspace/apex-pos/node_modules/express/lib/application.js:635:24)
+    at /root/.openclaw/workspace/apex-pos/server.js:876:7
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 5001
 }
 
 Node.js v22.22.0

@@ -87,6 +87,18 @@
       background: #e94560; color: #fff; font-weight: bold; font-size: 14px;
     }
     .btn.small { padding: 6px 12px; font-size: 12px; }
+    .cart-count { 
+      display: inline-block; 
+      background: #e94560; 
+      color: #fff; 
+      font-size: 10px; 
+      font-weight: bold; 
+      padding: 2px 6px; 
+      border-radius: 10px; 
+      margin-left: 4px;
+      min-width: 18px;
+      text-align: center;
+    }
     .btn.secondary { background: #333; }
     
     /* Categories */
@@ -275,7 +287,7 @@
   
   <div class="cart-bar" id="cartBar" style="display:none;">
     <div class="total">$<span id="cartTotal">0.00</span></div>
-    <button class="btn" id="checkoutBtn">Checkout</button>
+    <button class="btn" id="checkoutBtn" onclick="openCheckoutModal()">Checkout</button>
   </div>
 </div>
 
@@ -371,7 +383,7 @@
 
 <!-- Item Modal -->
 <div class="modal" id="itemModal">
-  <div class="modal-content">
+  <div class="modal-content" style="max-width:95vw;width:95vw;max-height:90vh;padding:16px;">
     <div class="modal-header">
       <h2 id="modalTitle">Item Name</h2>
       <button class="modal-close" id="closeModal">&times;</button>
@@ -401,6 +413,8 @@ let categories = [];
 let tables = [];
 let orders = [];
 let selectedCategory = 'all';
+let tipPercent = 0;
+let tipAmount = 0;
 
 // Auth
 document.querySelectorAll('.pin-key').forEach(btn => {
@@ -550,14 +564,31 @@ function renderMenu() {
 let itemModifiers = [];
 let currentItemId = null;
 
-async function openItemModal(itemId) {
+async function openItemModal(itemId, cartItem = null) {
   const item = menuItems.find(i => i.id === itemId);
   if (!item) return;
   
   currentItemId = itemId;
-  // Reset modal state
+  // Reset modal state completely (only for new items)
   document.getElementById('itemModal').style.display = 'block';
-  itemModifiers = [];
+  if (!cartItem) {
+    itemModifiers = [];
+    currentQty = 1;
+    currentCartIndex = -1;
+  }
+  
+  // Reset any previous checkbox states
+  document.querySelectorAll('.mod-label').forEach(label => {
+    label.style.background = '';
+    label.style.border = '';
+  });
+  document.querySelectorAll('#itemModal input[type="checkbox"]').forEach(cb => cb.checked = false);
+  
+  // If editing existing cart item, load its modifiers and qty
+  if (cartItem && cartItem.modifiers) {
+    itemModifiers = [...cartItem.modifiers];
+    currentQty = cartItem.qty || 1;
+  }
   
   // Fetch modifiers from backend
   let modifiersHtml = '';
@@ -573,7 +604,9 @@ async function openItemModal(itemId) {
         const catMods = mods.filter(m => m.category === cat);
         catMods.forEach(m => {
           const priceStr = m.price > 0 ? ' (+$' + m.price.toFixed(2) + ')' : '';
-          catHtml += '<label class="mod-label" data-mod-id="' + m.id + '" data-mod-name="' + m.name + '" data-mod-price="' + m.price + '" style="display:flex;align-items:center;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;cursor:pointer;border:1px solid transparent;"><input type="checkbox" style="width:18px;height:18px;margin-right:8px;" onchange="toggleItemModifier(' + m.id + ', &quot;' + m.name + '&quot;, ' + m.price + ')"><span style="font-size:14px;">' + m.name + priceStr + '</span></label>';
+          const isSelected = itemModifiers.some(pm => pm.id === m.id);
+          const bgStyle = isSelected ? 'background:#1f2937;border:1px solid #e94560;' : '';
+          catHtml += '<label class="mod-label" data-mod-id="' + m.id + '" data-mod-name="' + m.name + '" data-mod-price="' + m.price + '" style="display:flex;align-items:center;padding:12px 8px;background:#16213e;border-radius:6px;margin-bottom:4px;cursor:pointer;border:1px solid transparent;touch-action:manipulation;' + bgStyle + '"><input type="checkbox" style="width:24px;height:24px;margin-right:10px;touch-action:manipulation;" ' + (isSelected ? 'checked' : '') + ' onchange="toggleItemModifier(' + m.id + ', &quot;' + m.name + '&quot;, ' + m.price + ')"><span style="font-size:15px;">' + m.name + priceStr + '</span></label>';
         });
         catHtml += '</div>';
       });
@@ -582,6 +615,10 @@ async function openItemModal(itemId) {
   } catch(e) {}
   
   document.getElementById('modalTitle').textContent = item.name;
+  const qty = cartItem ? cartItem.qty : 1;
+  const remarks = cartItem ? (cartItem.remarks || '') : '';
+  const btnText = cartItem ? 'Update Cart' : 'Add to Cart';
+  
   document.getElementById('modalBody').innerHTML = `
     <div style="text-align:center; margin-bottom:20px;">
       <div class="price" style="font-size:24px;">$${item.price.toFixed(2)}</div>
@@ -589,7 +626,7 @@ async function openItemModal(itemId) {
     </div>
     <div style="display:flex; gap:12px; justify-content:center;">
       <button class="btn secondary" onclick="updateQty(${item.id}, -1)">−</button>
-      <span id="qtyDisplay" style="font-size:24px; padding:0 20px;">1</span>
+      <span id="qtyDisplay" style="font-size:24px; padding:0 20px;">${qty}</span>
       <button class="btn" onclick="updateQty(${item.id}, 1)">+</button>
     </div>
     ${modifiersHtml}
@@ -597,10 +634,10 @@ async function openItemModal(itemId) {
       <label style="display:block; margin-bottom:8px; color:#888;">📝 Remarks</label>
       <textarea id="itemRemarks" placeholder="Special requests..." 
         style="width:100%; padding:12px; background:#16213e; color:#fff; border:1px solid #333; 
-        border-radius:8px; min-height:60px; resize:none; font-family:inherit;"></textarea>
+        border-radius:8px; min-height:60px; resize:none; font-family:inherit;">${remarks}</textarea>
     </div>
     <button class="btn" style="width:100%; margin-top:20px;" onclick="addItemToCart(${item.id});">
-      Add to Cart
+      ${btnText}
     </button>
   `;
   document.getElementById('itemModal').style.display = 'block';
@@ -634,18 +671,59 @@ function updateQty(itemId, delta) {
   span.textContent = qty;
 }
 
+let currentCartIndex = -1;
+
 function addItemToCart(itemId) {
   const qty = parseInt(document.getElementById('qtyDisplay').textContent);
   const remarks = document.getElementById('itemRemarks').value.trim();
-  const modNames = itemModifiers.map(m => m.name).join(', ');
-  const fullRemarks = modNames ? modNames + (remarks ? ' | ' + remarks : '') : remarks;
-  addToCart(itemId, qty, fullRemarks);
+  // Modifiers are stored separately - don't duplicate in remarks
+  
+  // If editing existing cart item, update it
+  if (currentCartIndex >= 0 && cart[currentCartIndex]) {
+    const item = menuItems.find(i => i.id === itemId);
+    if (item) {
+      const modPrice = itemModifiers.reduce((sum, m) => sum + m.price, 0);
+      const totalPrice = item.price + modPrice;
+      const modifierQty = {};
+      itemModifiers.forEach(m => modifierQty[m.id] = 1);
+      
+      cart[currentCartIndex] = {
+        itemId,
+        qty,
+        price: totalPrice,
+        basePrice: item.price,
+        modPrice,
+        name: item.name,
+        modifiers: [...itemModifiers],
+        remarks: remarks,
+        modifierQty
+      };
+    }
+    currentCartIndex = -1;
+  } else {
+    addToCart(itemId, qty, remarks);
+  }
+  
   document.getElementById('itemModal').classList.remove('active');
+  document.getElementById('itemModal').style.display = 'none';
+  itemModifiers = [];
+  currentCartIndex = -1;
+  updateCartUI();
+  renderCartModal();
 }
 
 function closeModal() {
   document.getElementById('itemModal').classList.remove('active');
   document.getElementById('itemModal').style.display = 'none';
+  // Reset modal state
+  itemModifiers = [];
+  currentQty = 1;
+  currentCartIndex = -1;
+  document.querySelectorAll('#itemModal input[type="checkbox"]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.mod-label').forEach(label => {
+    label.style.background = '';
+    label.style.border = '';
+  });
 }
 
 document.getElementById('closeModal').onclick = function() {
@@ -684,7 +762,7 @@ function updateCartUI() {
   const count = cart.reduce((sum, c) => sum + c.qty, 0);
   const subtotal = cart.reduce((sum, c) => {
     const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
-    return sum + (c.qty * c.price) + modTotal;
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
   }, 0);
   const tax = subtotal * 0.08;
   const total = subtotal + tax;
@@ -728,7 +806,7 @@ function updateDiscountDisplay() {
   
   const subtotal = cart.reduce((sum, c) => {
     const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
-    return sum + (c.qty * c.price) + modTotal;
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
   }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
@@ -754,7 +832,7 @@ function renderCartModal() {
   
   const subtotal = cart.reduce((sum, c) => {
     const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
-    return sum + (c.qty * c.price) + modTotal;
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
   }, 0);
   
   if (!cart.length) {
@@ -773,28 +851,27 @@ function renderCartModal() {
   container.innerHTML = cart.map((c, idx) => {
     const modQty = c.modifierQty || {};
     const modTotal = (c.modifiers || []).reduce((sum, m) => sum + (m.price * (modQty[m.id] || 1)), 0);
-    const itemTotal = (c.qty * c.price) + modTotal;
+    const itemTotal = (c.qty * (c.basePrice || c.price)) + modTotal;
+    const basePrice = c.basePrice || c.price;
     return `
     <div style="background:#16213e; border-radius:8px; padding:12px; margin-bottom:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="editCartItem(${idx})">
-        <div style="flex:1; min-width:0;">
-          <div style="font-weight:600; font-size:14px;">${c.name} <span style="font-size:10px;color:#666;">(tap to edit)</span></div>
-          <div style="font-size:13px; color:#888;">Base: $${c.price.toFixed(2)} × ${c.qty}</div>
-        </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; cursor:pointer;" onclick="editCartItem(${idx})">
+        <div style="font-weight:600; font-size:14px;">${c.name}</div>
         <div style="display:flex; align-items:center; gap:4px;">
-          <button class="btn small secondary" onclick="changeCartQty(${idx}, -1)" style="width:28px; height:28px; padding:0;">−</button>
-          <span style="font-size:14px; font-weight:600; min-width:20px; text-align:center;">${c.qty}</span>
-          <button class="btn small secondary" onclick="changeCartQty(${idx}, 1)" style="width:28px; height:28px; padding:0;">+</button>
+          <button class="btn small secondary" onclick="event.stopPropagation(); changeCartQty(${idx}, -1)" style="width:24px; height:24px; padding:0; font-size:12px;">−</button>
+          <span style="font-size:12px; min-width:16px; text-align:center;">${c.qty}</span>
+          <button class="btn small secondary" onclick="event.stopPropagation(); changeCartQty(${idx}, 1)" style="width:24px; height:24px; padding:0; font-size:12px;">+</button>
+          <span style="font-size:12px; color:#888; min-width:50px; text-align:right;">$${basePrice.toFixed(2)}</span>
         </div>
       </div>
       ${c.modifiers && c.modifiers.length ? c.modifiers.map((m) => {
         const mQty = modQty[m.id] || 1;
-        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid #2d2d4a; margin-top:8px;">
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0;">
           <div style="font-size:12px; color:#fbbf24;">+ ${m.name}</div>
           <div style="display:flex; align-items:center; gap:4px;">
-            <button class="btn small secondary" onclick="changeModQty(${idx}, ${m.id}, -1)" style="width:24px; height:24px; padding:0; font-size:12px;">−</button>
+            <button class="btn small secondary" onclick="event.stopPropagation(); changeModQty(${idx}, ${m.id}, -1)" style="width:24px; height:24px; padding:0; font-size:12px;">−</button>
             <span style="font-size:12px; min-width:16px; text-align:center;">${mQty}</span>
-            <button class="btn small secondary" onclick="changeModQty(${idx}, ${m.id}, 1)" style="width:24px; height:24px; padding:0; font-size:12px;">+</button>
+            <button class="btn small secondary" onclick="event.stopPropagation(); changeModQty(${idx}, ${m.id}, 1)" style="width:24px; height:24px; padding:0; font-size:12px;">+</button>
             <span style="font-size:12px; color:#888; min-width:50px; text-align:right;">$${(m.price * mQty).toFixed(2)}</span>
           </div>
         </div>`;
@@ -835,7 +912,7 @@ function renderCartModal() {
         <span>Total</span>
         <span id="cartTotalDisplay" style="color:#22c55e;">$${Math.max(0, total).toFixed(2)}</span>
       </div>
-      <button class="btn" style="width:100%; padding:12px; font-size:15px;" onclick="processCheckout()">Checkout</button>
+      <button class="btn" style="width:100%; padding:12px; font-size:15px;" onclick="openCheckoutModal()">Checkout</button>
     </div>
   `;
   // Update discount display after render
@@ -868,7 +945,9 @@ function editCartItem(idx) {
   const cartItem = cart[idx];
   const item = menuItems.find(i => i.id === cartItem.itemId);
   if (!item) return;
-  openItemModal(cartItem.itemId);
+  currentCartIndex = idx;
+  document.getElementById('cartModal').classList.remove('active');
+  openItemModal(cartItem.itemId, cartItem);
 }
 
 function clearCart() {
@@ -885,7 +964,7 @@ document.getElementById('closeCartModal').addEventListener('click', () => {
 function processCheckout() {
   const subtotal = cart.reduce((sum, c) => {
     const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
-    return sum + (c.qty * c.price) + modTotal;
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
   }, 0);
   
   // Use global discount values (updated as user types)
@@ -931,42 +1010,6 @@ function processCheckout() {
     alert('Error: ' + e.message);
   });
 }
-
-document.getElementById('checkoutBtn').addEventListener('click', async () => {
-  if (!cart.length) return;
-  
-  const subtotal = cart.reduce((sum, c) => {
-    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
-    return sum + (c.qty * c.price) + modTotal;
-  }, 0);
-  const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
-  const taxableAmount = subtotal - discountAmount;
-  const tax = taxableAmount * 0.08;
-  const total = taxableAmount + tax;
-  const order = {
-    tableId: 1, // TODO: table selection
-    items: cart.map(c => ({ menuItemId: c.itemId, qty: c.qty, unitPrice: c.price })),
-    subtotal: subtotal,
-    tax: tax,
-    total: total,
-    discount: { type: discountTypeGlobal, value: discountValueGlobal },
-    status: 'open'
-  };
-  
-  try {
-    await fetch(API + '/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order)
-    });
-    cart = [];
-    updateCartUI();
-    loadOrders();
-    alert('Order placed!');
-  } catch (e) {
-    alert('Error: ' + e.message);
-  }
-});
 
 // Tables
 async function loadTables() {
@@ -1347,35 +1390,389 @@ document.getElementById('scanBluetoothBtn').addEventListener('click', async () =
   }
 });
 
+function setTip(pct) {
+  tipPercent = pct;
+  tipAmount = 0;
+  document.getElementById('customTipInput').style.display = 'none';
+  updateCheckoutTotals();
+}
+
+function toggleCustomTip() {
+  document.getElementById('customTipInput').style.display = 'block';
+  tipPercent = 0;
+}
+
+function updateCustomTip(val) {
+  tipAmount = parseFloat(val) || 0;
+  document.getElementById('chkTip').textContent = '$' + tipAmount.toFixed(2);
+  updateCheckoutTotals();
+}
+
+function calculateTipFromCash() {
+  const cashGiven = parseFloat(document.getElementById('cashGiven')?.value) || 0;
+  const chkTotalEl = document.getElementById('chkTotal');
+  if (!chkTotalEl) return;
+  const total = parseFloat(chkTotalEl.textContent.replace('$','')) || 0;
+  tipAmount = Math.max(0, cashGiven - total);
+  document.getElementById('chkTip').textContent = '$' + tipAmount.toFixed(2);
+  const newTotal = total + tipAmount;
+  chkTotalEl.textContent = '$' + newTotal.toFixed(2);
+}
+
+function updateCheckoutTotals() {
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
+  }, 0);
+  const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
+  const taxableAmount = subtotal - discountAmount;
+  const tax = taxableAmount * 0.08;
+  
+  // Calculate tip
+  if (tipPercent > 0) {
+    tipAmount = taxableAmount * (tipPercent / 100);
+  } else {
+    // Check custom tip input first, then cash given
+    const customTip = parseFloat(document.getElementById('customTipAmount')?.value || '0');
+    if (customTip > 0) {
+      tipAmount = customTip;
+    } else {
+      const cashGiven = parseFloat(document.getElementById('cashGiven')?.value || '0');
+      const subtotalWithTax = taxableAmount + tax;
+      tipAmount = Math.max(0, cashGiven - subtotalWithTax);
+    }
+  }
+  
+  const total = taxableAmount + tax + tipAmount;
+  
+  document.getElementById('chkSubtotal').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('chkTax').textContent = '$' + tax.toFixed(2);
+  document.getElementById('chkTip').textContent = '$' + tipAmount.toFixed(2);
+  document.getElementById('chkTotal').textContent = '$' + total.toFixed(2);
+}
+
+function showReceiptPreview() {
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
+  }, 0);
+  const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
+  const taxableAmount = subtotal - discountAmount;
+  const tax = taxableAmount * 0.08;
+  
+  if (tipPercent > 0) {
+    tipAmount = taxableAmount * (tipPercent / 100);
+  } else {
+    const customTip = parseFloat(document.getElementById('customTipAmount')?.value || '0');
+    if (customTip > 0) {
+      tipAmount = customTip;
+    } else {
+      const cashGiven = parseFloat(document.getElementById('cashGiven')?.value || '0');
+      const subtotalWithTax = taxableAmount + tax;
+      tipAmount = Math.max(0, cashGiven - subtotalWithTax);
+    }
+  }
+  
+  const total = taxableAmount + tax + tipAmount;
+  
+  // Build receipt items with detailed line items
+  let itemsHtml = cart.map(c => {
+    const modQty = c.modifierQty || {};
+    const basePrice = c.basePrice || c.price;
+    const modTotal = (c.modifiers || []).reduce((sum, m) => sum + (m.price * (modQty[m.id] || 1)), 0);
+    const itemTotal = (c.qty * basePrice) + modTotal;
+    let lines = [];
+    lines.push('<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>' + c.qty + 'x ' + c.name + '</span><span style="font-weight:bold;">$' + itemTotal.toFixed(2) + '</span></div>');
+    
+    // Add modifiers as separate lines (just names, no price since it's included in item total)
+    (c.modifiers || []).forEach(m => {
+      const mQty = modQty[m.id] || 1;
+      lines.push('<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + (mQty > 1 ? ' x' + mQty : '') + '</div>');
+    });
+    
+    // Add remarks if present and not already covered by modifiers
+    const modNamesList = (c.modifiers || []).map(m => m.name.toLowerCase());
+    const remarksText = c.remarks || '';
+    const hasUniqueRemarks = !modNamesList.some(m => remarksText.toLowerCase().includes(m));
+    if (c.remarks && hasUniqueRemarks) {
+      lines.push('<div style="padding-left:12px;font-size:10px;color:#e94560;font-style:italic;">* ' + c.remarks + '</div>');
+    }
+    
+    return lines.join('');
+  }).join('');
+  
+  document.getElementById('receiptItems').innerHTML = itemsHtml;
+  document.getElementById('rcptSubtotal').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('rcptTax').textContent = '$' + tax.toFixed(2);
+  document.getElementById('rcptTip').textContent = '$' + tipAmount.toFixed(2);
+  const method = document.getElementById('selectedPaymentMethod').value;
+  const cashReceived = parseFloat(document.getElementById('cashReceived')?.value) || 0;
+  const change = Math.max(0, cashReceived - total);
+  document.getElementById('rcptCash').textContent = method === 'cash' ? '$' + cashReceived.toFixed(2) : '-';
+  document.getElementById('rcptChange').textContent = method === 'cash' ? '$' + change.toFixed(2) : '-';
+  document.getElementById('rcptTotal').textContent = '$' + total.toFixed(2);
+  
+  // Set current date/time
+  const now = new Date();
+  document.getElementById('rcptDateTime').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  
+  // Set restaurant info from localStorage
+  const restName = localStorage.getItem('restaurant_name') || 'APEX POS';
+  const restAddress = localStorage.getItem('restaurant_address') || '';
+  document.getElementById('rcptRestName').textContent = restName;
+  document.getElementById('rcptRestAddress').textContent = restAddress;
+  document.getElementById('rcptRestAddress').style.display = restAddress ? 'block' : 'none';
+  
+  document.getElementById('receiptPreview').style.display = 'block';
+}
+
+async function printReceipt() {
+  // Call print API
+  try {
+    await fetch(API + '/api/print/receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart, tip: tipAmount, tipPercent })
+    });
+  } catch(e) {
+    console.log('Print not available');
+  }
+}
+
 function openCheckoutModal() {
   if(!cart.length) return alert('Cart empty!');
-  const subtotal = cart.reduce((s,c) => s + c.qty*c.price, 0);
+  tipPercent = 0;
+  tipAmount = 0;
+  
+  const modal = document.getElementById('checkoutModal');
+  if (!modal) { alert('Modal not found!'); return; }
+  
+  document.getElementById('customTipInput').style.display = 'none';
+  document.getElementById('receiptPreview').style.display = 'none';
+  const customTipEl = document.getElementById('customTipAmount');
+  if (customTipEl) customTipEl.value = '';
+  
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
+  }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
   const tax = taxableAmount * 0.08;
   const total = taxableAmount + tax;
   
-  document.getElementById('checkoutItems').innerHTML = cart.map(c => 
-    '<div style="display:flex;justify-content:space-between;padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;"><span>' + c.qty + 'x ' + c.name + '</span><span>$' + (c.qty*c.price).toFixed(2) + '</span></div>'
-  ).join('');
+  // Build cart items display
+  let itemsHtml = cart.map(c => {
+    const modQty = c.modifierQty || {};
+    const basePrice = c.basePrice || c.price;
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (modQty[mod.id] || 1)), 0);
+    const itemTotal = (c.qty * basePrice) + modTotal;
+    let modsHtml = '';
+    if (c.modifiers && c.modifiers.length) {
+      modsHtml = '<div style="font-size:11px;color:#888;padding-left:8px;">- ' + c.modifiers.map(m => m.name + (modQty[m.id] > 1 ? ' x' + modQty[m.id] : '')).join(', ') + '</div>';
+    }
+    const modNamesList = (c.modifiers || []).map(m => m.name.toLowerCase());
+    const remarksText = c.remarks || '';
+    const hasUniqueRemarks = !modNamesList.some(m => remarksText.toLowerCase().includes(m));
+    let remarksHtml = (c.remarks && hasUniqueRemarks) ? '<div style="font-size:11px;color:#e94560;font-style:italic;padding-left:8px;">* ' + c.remarks + '</div>' : '';
+    return '<div style="padding:8px;background:#16213e;border-radius:6px;margin-bottom:4px;"><div style="display:flex;justify-content:space-between;"><span>' + c.qty + 'x ' + c.name + '</span><span>$' + itemTotal.toFixed(2) + '</span></div>' + modsHtml + remarksHtml + '</div>';
+  }).join('');
   
+  document.getElementById('checkoutItems').innerHTML = itemsHtml;
   document.getElementById('chkSubtotal').textContent = '$' + subtotal.toFixed(2);
   document.getElementById('chkTax').textContent = '$' + tax.toFixed(2);
+  document.getElementById('chkTip').textContent = '$0.00';
   document.getElementById('chkTotal').textContent = '$' + total.toFixed(2);
   document.getElementById('checkoutModal').style.display = 'block';
+  
+  // Reset payment selection
+  document.getElementById('selectedPaymentMethod').value = '';
+  document.getElementById('processPaymentBtn').disabled = true;
+  document.getElementById('processPaymentBtn').style.opacity = '0.5';
+  document.querySelectorAll('.payment-method-btn').forEach(btn => {
+    btn.style.background = '';
+    btn.style.color = '';
+  });
+}
+
+var cashChange = 0;
+
+function selectPaymentMethod(method) {
+  document.getElementById('selectedPaymentMethod').value = method;
+  const btn = document.getElementById('processPaymentBtn');
+  if (btn) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+  
+  // Show/hide change calculator for cash
+  const calc = document.getElementById('changeCalculator');
+  const changeEl = document.getElementById('changeAmount');
+  if (calc) {
+    calc.style.display = method === 'cash' ? 'block' : 'none';
+    if (method === 'cash' && changeEl) {
+      // Initialize change display
+      changeEl.textContent = '0.00';
+      changeEl.style.color = '#888';
+      // Update totals first, then try to open keyboard
+      updateCheckoutTotals();
+      var tryFocus = function() {
+        var input = document.getElementById('cashReceived');
+        if (input) {
+          input.style.background = '#2a3a5a';
+          input.focus();
+          input.select();
+          setTimeout(function() { input.style.background = '#1a1a2e'; }, 500);
+        }
+      };
+      setTimeout(tryFocus, 500);
+      setTimeout(tryFocus, 700);
+      setTimeout(tryFocus, 900);
+    }
+    if (method !== 'cash') {
+      if (document.getElementById('cashReceived')) document.getElementById('cashReceived').value = '';
+      if (changeEl) {
+        changeEl.textContent = '0.00';
+        changeEl.style.color = '#888';
+      }
+      cashChange = 0;
+    }
+  }
+  
+  // Update button styles
+  document.querySelectorAll('.payment-method-btn').forEach(btn => {
+    btn.style.background = '';
+    btn.style.color = '';
+  });
+  document.getElementById('pm' + method.charAt(0).toUpperCase() + method.slice(1)).style.background = '#22c55e';
+  document.getElementById('pm' + method.charAt(0).toUpperCase() + method.slice(1)).style.color = '#fff';
+}
+
+function calculateChange() {
+  var inputEl = document.getElementById('cashReceived');
+  var received = inputEl ? (parseFloat(inputEl.value) || 0) : 0;
+  var totalEl = document.getElementById('chkTotal');
+  var total = totalEl ? (parseFloat(totalEl.textContent.replace('$','').replace(',','')) || 0) : 0;
+  cashChange = received - total;
+  var changeEl = document.getElementById('changeAmount');
+  if (changeEl) {
+    changeEl.textContent = cashChange.toFixed(2);
+    changeEl.style.color = cashChange > 0 ? '#22c55e' : '#888';
+  }
+}
+
+function confirmPayment() {
+  var method = document.getElementById('selectedPaymentMethod').value;
+  if (!method) return alert('Please select a payment method first!');
+  
+  // Validate cash payment
+  if (method === 'cash') {
+    var received = parseFloat(document.getElementById('cashReceived')?.value) || 0;
+    var totalEl = document.getElementById('chkTotal');
+    var total = totalEl ? (parseFloat(totalEl.textContent.replace('$','').replace(',','')) || 0) : 0;
+    if (received < total) {
+      return alert('Insufficient cash! Received $' + received.toFixed(2) + ' but total is $' + total.toFixed(2));
+    }
+  }
+  
+  processPayment(method);
 }
 
 async function processPayment(method) {
-  const subtotal = cart.reduce((s,c) => s + c.qty*c.price, 0);
+  console.log('processPayment called with method:', method);
+  if (!cart.length) return alert('Cart is empty!');
+  
+  const subtotal = cart.reduce((sum, c) => {
+    const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
+    return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
+  }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
   const tax = taxableAmount * 0.08;
-  const total = (taxableAmount + tax).toFixed(2);
-  alert(method.toUpperCase() + ' payment of $' + total + ' processed!');
+  
+  // Calculate tip - ensure we use current values
+  const customTipInput = document.getElementById('customTipAmount');
+  const cashGivenInput = document.getElementById('cashGiven');
+  if (tipPercent > 0) {
+    tipAmount = taxableAmount * (tipPercent / 100);
+  } else if (customTipInput && parseFloat(customTipInput.value) > 0) {
+    tipAmount = parseFloat(customTipInput.value);
+  } else if (cashGivenInput && method === 'cash') {
+    const cashGiven = parseFloat(cashGivenInput.value) || 0;
+    tipAmount = Math.max(0, cashGiven - (taxableAmount + tax));
+  } else {
+    tipAmount = 0;
+  }
+  
+  const total = (taxableAmount + tax + tipAmount).toFixed(2);
+  
+  // Build order data
+  const orderData = {
+    tableId: 1,
+    items: cart.map(c => ({
+      menuItemId: c.itemId,
+      qty: c.qty,
+      price: c.basePrice || c.price,
+      modifiers: c.modifiers || [],
+      remarks: c.remarks || null
+    })),
+    subtotal,
+    tax,
+    tip: tipAmount,
+    tipPercent,
+    discount: discountAmount,
+    total: parseFloat(total),
+    paymentMethod: method,
+    cashReceived: method === 'cash' ? (parseFloat(document.getElementById('cashReceived')?.value) || 0) : 0,
+    changeGiven: method === 'cash' ? cashChange : 0,
+    status: 'pending'
+  };
+  
+  try {
+    // Save order to backend
+    const res = await fetch(API + '/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+      body: JSON.stringify(orderData)
+    });
+    
+    if (res.ok) {
+      const order = await res.json();
+      
+      // Print receipt
+      try {
+        await fetch(API + '/api/print/receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.id, cart, tip: tipAmount, tipPercent, total })
+        });
+      } catch(e) { console.log('Print not available'); }
+      
+      alert(method.toUpperCase() + ' payment of $' + total + ' processed!\nOrder #' + order.id + ' sent to kitchen.');
+    } else {
+      alert('Failed to process order');
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+  
+  // Close modal and reset
   cart = [];
   discountValueGlobal = 0;
+  discountTypeGlobal = 'percent';
+  tipPercent = 0;
+  tipAmount = 0;
   updateCartUI();
   document.getElementById('checkoutModal').style.display = 'none';
+  document.getElementById('receiptPreview').style.display = 'none';
+  document.getElementById('customTipAmount')?.value && (document.getElementById('customTipAmount').value = '');
+  document.getElementById('cashGiven') && (document.getElementById('cashGiven').value = '');
+  document.getElementById('calculatedTip') && (document.getElementById('calculatedTip').textContent = '$0.00');
+  document.getElementById('customTipInput').style.display = 'none';
+  
+  // Also close cart modal if open
+  const cartModal = document.getElementById('cartModal');
+  if (cartModal) cartModal.classList.remove('active');
 }
 
 // Hook checkout button
@@ -1515,7 +1912,17 @@ async function showSettingsTab(tab, btn) {
     } catch(e) { content.innerHTML = '<div style="color:#ff4444;">Error loading stock - Admin required</div>'; }
   } else if (tab === 'system') {
     const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
+    const restName = localStorage.getItem('restaurant_name') || 'APEX POS';
+    const restAddress = localStorage.getItem('restaurant_address') || '';
     content.innerHTML = `
+      <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
+        <div style="font-weight:bold;margin-bottom:12px;">Restaurant Info</div>
+        <input type="text" id="restNameInput" placeholder="Restaurant Name" value="${restName}" 
+          style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+        <input type="text" id="restAddressInput" placeholder="Address" value="${restAddress}" 
+          style="width:100%;padding:10px;margin-bottom:12px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+        <button class="btn small" onclick="saveRestaurantInfo()" style="background:#4ade80;">Save</button>
+      </div>
       <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-weight:bold;">Stock Tracking</div>
@@ -1691,6 +2098,27 @@ function toggleStock() {
   const current = localStorage.getItem('stock_enabled');
   localStorage.setItem('stock_enabled', current === 'true' ? 'false' : 'true');
   showSettingsTab('system', null);
+}
+
+function saveRestaurantInfo() {
+  const name = document.getElementById('restNameInput').value.trim() || 'APEX POS';
+  const address = document.getElementById('restAddressInput').value.trim();
+  localStorage.setItem('restaurant_name', name);
+  localStorage.setItem('restaurant_address', address);
+  
+  // Save to backend
+  fetch(API + '/api/settings/restaurant_name', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: name })
+  }).catch(() => {});
+  fetch(API + '/api/settings/restaurant_address', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: address })
+  }).catch(() => {});
+  
+  alert('Restaurant info saved!');
 }
 
 async function editMenuItem(id) {
@@ -1917,6 +2345,15 @@ async function deleteModifier(id) {
   });
   showSettingsTab('modifiers', null);
 }
+
+function resetCheckout() {
+  document.getElementById('checkoutModal').style.display = 'none';
+  document.getElementById('cashReceived') && (document.getElementById('cashReceived').value = '');
+  document.getElementById('changeAmount') && (document.getElementById('changeAmount').textContent = '0.00');
+  document.getElementById('changeCalculator') && (document.getElementById('changeCalculator').style.display = 'none');
+  document.getElementById('selectedPaymentMethod').value = '';
+  cashChange = 0;
+}
 </script>
 
 
@@ -1925,16 +2362,90 @@ async function deleteModifier(id) {
   <div style="background:#1a1a2e;padding:20px;width:100%;max-width:450px;margin:0 auto;border-radius:12px;">
     <h2 style="margin-bottom:20px;text-align:center;">Checkout</h2>
     <div id="checkoutItems" style="max-height:200px;overflow-y:auto;margin-bottom:16px;"></div>
+    
+    <!-- Tip Options -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:14px;color:#888;margin-bottom:8px;">Tip</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;">
+        <button class="btn small secondary" onclick="setTip(0)">No</button>
+        <button class="btn small secondary" onclick="setTip(15)">15%</button>
+        <button class="btn small secondary" onclick="setTip(18)">18%</button>
+        <button class="btn small secondary" onclick="setTip(20)">20%</button>
+        <button class="btn small secondary" onclick="toggleCustomTip()">Cust</button>
+      </div>
+      <div id="customTipInput" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:11px;color:#888;margin-bottom:4px;">Custom tip $</div>
+            <input type="number" id="customTipAmount" placeholder="0.00" oninput="updateCustomTip(this.value)" style="width:100%;padding:10px;border-radius:8px;background:#16213e;border:1px solid #333;color:#fff;font-size:16px;text-align:center;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:#888;margin-bottom:4px;">Cash given $</div>
+            <input type="number" id="cashGiven" placeholder="0.00" oninput="calculateTipFromCash()" style="width:100%;padding:10px;border-radius:8px;background:#16213e;border:1px solid #333;color:#fff;font-size:16px;text-align:center;">
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Subtotal:</span><span id="chkSubtotal">$0</span></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8%):</span><span id="chkTax">$0</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tip:</span><span id="chkTip">$0</span></div>
       <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;border-top:1px solid #333;padding-top:8px;"><span>Total:</span><span id="chkTotal" style="color:#e94560;">$0</span></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
-      <button class="btn" onclick="processPayment('cash')">Cash</button>
-      <button class="btn" onclick="processPayment('card')">Card</button>
-      <button class="btn secondary" onclick="document.getElementById('checkoutModal').style.display='none'">Cancel</button>
+    
+    <!-- Receipt Preview -->
+    <div id="receiptPreview" style="display:none;background:#fff;color:#222;padding:20px;border-radius:12px;margin-bottom:16px;font-family:'Courier New',monospace;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+      <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:12px;">
+        <div style="font-size:20px;font-weight:bold;" id="rcptRestName">APEX POS</div>
+        <div style="font-size:11px;color:#666;" id="rcptRestAddress"></div>
+        <div style="font-size:11px;color:#666;margin-top:4px;" id="rcptDateTime"></div>
+      </div>
+      
+      <div id="receiptItems" style="margin-bottom:12px;max-height:150px;overflow-y:auto;"></div>
+      
+      <div style="border-top:2px solid #333;padding-top:12px;margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Subtotal:</span><span id="rcptSubtotal">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#666;"><span>Tax (8%):</span><span id="rcptTax">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Tip:</span><span id="rcptTip">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#888;"><span>Cash:</span><span id="rcptCash">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Change:</span><span id="rcptChange">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;border-top:1px dashed #333;padding-top:8px;margin-top:8px;"><span>TOTAL:</span><span id="rcptTotal" style="color:#e94560;">$0.00</span></div>
+      </div>
+      
+      <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #999;font-size:12px;color:#666;">
+        Thank you for your order!<br>Please come again
+      </div>
     </div>
+    
+    <div style="margin-bottom:12px;">
+      <label style="font-size:14px;color:#888;display:block;margin-bottom:6px;">Select Payment Method</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <button class="btn secondary payment-method-btn" id="pmCash" onclick="selectPaymentMethod('cash')">Cash</button>
+        <button class="btn secondary payment-method-btn" id="pmCard" onclick="selectPaymentMethod('card')">Card</button>
+        <button class="btn secondary payment-method-btn" id="pmZelle" onclick="selectPaymentMethod('zelle')">Zelle</button>
+      </div>
+    </div>
+    <!-- Change Calculator (shows when cash selected) -->
+    <div id="changeCalculator" style="display:none;background:#16213e;padding:12px;border-radius:8px;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">Cash Received $</div>
+          <div style="display:flex;gap:4px;">
+          <input type="text" inputmode="decimal" id="cashReceived" placeholder="0.00" oninput="calculateChange()" onkeyup="calculateChange()" onchange="calculateChange()" style="flex:1;padding:10px;border-radius:8px;background:#1a1a2e;border:1px solid #333;color:#fff;font-size:16px;text-align:center;">
+          <button type="button" onclick="calculateChange(); var c=document.getElementById('changeAmount'); if(c) alert('Change: $'+c.textContent)" style="padding:10px 16px;border-radius:8px;background:#e94560;color:#fff;border:none;font-weight:bold;">$</button>
+        </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#22c55e;margin-bottom:4px;">Change $</div>
+          <div id="changeAmount" style="width:100%;padding:10px;border-radius:8px;background:#1a2e1a;border:1px solid #555;color:#888;font-size:16px;text-align:center;font-weight:bold;">0.00</div>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" id="selectedPaymentMethod" value="">
+    <button class="btn" id="processPaymentBtn" onclick="confirmPayment()" style="width:100%;margin-bottom:8px;" disabled>Process Payment</button>
+    <button class="btn secondary" style="width:100%;margin-bottom:8px;" onclick="showReceiptPreview()">Preview Receipt</button>
+    <button class="btn secondary" style="width:100%;background:#c73e3e;" onclick="resetCheckout()">Cancel</button>
   </div>
 </div>
 

@@ -53,6 +53,7 @@ const Order = sequelize.define('Order', {
   subtotal: { type: DataTypes.FLOAT, defaultValue: 0 },
   tax: { type: DataTypes.FLOAT, defaultValue: 0 },
   discount: { type: DataTypes.FLOAT, defaultValue: 0 },
+  tip: { type: DataTypes.FLOAT, defaultValue: 0 },
   total: { type: DataTypes.FLOAT, defaultValue: 0 },
   status: { type: DataTypes.ENUM('open','paid','canceled'), defaultValue: 'open' },
   StaffId: { type: DataTypes.INTEGER } // who created the order
@@ -82,6 +83,7 @@ OrderItem.belongsTo(MenuItem, { foreignKey: 'menuItemId' });
 // Payment model
 const Payment = sequelize.define('Payment', {
   amount: { type: DataTypes.FLOAT, allowNull: false },
+  tip: { type: DataTypes.FLOAT, defaultValue: 0 },
   method: { type: DataTypes.ENUM('stripe','zelle','cash'), allowNull: false },
   status: { type: DataTypes.ENUM('pending','completed','failed'), defaultValue: 'pending' },
   transactionId: DataTypes.STRING // external payment reference
