@@ -1,4 +1,4 @@
-◇ injecting env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injecting env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
 DB synced
 Seeded staff
 Seeded menu with modifiers

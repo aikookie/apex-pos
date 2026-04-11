@@ -1795,8 +1795,19 @@ function setExactChange() {
 }
 
 function confirmPayment() {
+  const btn = document.getElementById('processPaymentBtn');
+  if (btn && btn.disabled) return; // Prevent double-click
+  
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+  }
+  
   var method = document.getElementById('selectedPaymentMethod').value;
-  if (!method) return alert('Please select a payment method first!');
+  if (!method) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Process Payment'; }
+    return alert('Please select a payment method first!');
+  }
   
   // Validate cash payment
   if (method === 'cash') {
