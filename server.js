@@ -244,16 +244,17 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
   
   for (const item of items) {
     const modifiersJson = item.modifiers ? JSON.stringify(item.modifiers) : null;
+    const menuItemId = item.menuItemId || item.id;
     await OrderItem.create({
       orderId: order.id,
-      menuItemId: item.id,
+      menuItemId: menuItemId,
       quantity: item.qty,
       price: item.price,
       modifiers: modifiersJson
     });
     
     // Update inventory
-    const menuItem = await MenuItem.findByPk(item.id);
+    const menuItem = await MenuItem.findByPk(menuItemId);
     if (menuItem && menuItem.stock !== null) {
       await menuItem.update({ stock: Math.max(0, menuItem.stock - item.qty) });
     }
