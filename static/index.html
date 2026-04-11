@@ -1172,24 +1172,32 @@ async function viewReceipt(orderId) {
     const taxVal = Math.round(subtotalVal * 0.08 * 100) / 100;
     const tipVal = parseFloat(order.tip) || 0;
     const totalVal = subtotalVal + taxVal + tipVal;
-    
-    // Populate the EXACT same receiptPreview elements
-    document.getElementById('receiptItems').innerHTML = itemsHtml;
-    document.getElementById('rcptSubtotal').textContent = '$' + subtotalVal.toFixed(2);
-    document.getElementById('rcptTax').textContent = '$' + taxVal.toFixed(2);
-    document.getElementById('rcptTip').textContent = '$' + tipVal.toFixed(2);
-    document.getElementById('rcptCash').textContent = '-';
-    document.getElementById('rcptChange').textContent = '-';
-    document.getElementById('rcptTotal').textContent = '$' + totalVal.toFixed(2);
     const orderDate = new Date(order.createdAt);
-    document.getElementById('rcptDateTime').textContent = orderDate.toLocaleDateString() + ' ' + orderDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const dateStr = orderDate.toLocaleDateString() + ' ' + orderDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     
-    // Show checkout modal with receipt visible
-    document.getElementById('checkoutModal').style.display = 'block';
-    document.getElementById('receiptPreview').style.display = 'block';
-    // Hide payment buttons in view mode
-    const changeCalc = document.getElementById('changeCalculator');
-    if (changeCalc) changeCalc.style.display = 'none';
+    // Create simple receipt popup - just the receipt, nothing else
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+      <div style="background:#fff;color:#222;padding:20px;border-radius:12px;width:100%;max-width:320px;font-family:'Courier New',monospace;font-size:13px;">
+        <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:12px;">
+          <div style="font-size:20px;font-weight:bold;">APEX POS</div>
+          <div style="font-size:11px;color:#666;">${dateStr}</div>
+        </div>
+        <div style="margin-bottom:12px;">${itemsHtml}</div>
+        <div style="border-top:2px solid #333;padding-top:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Subtotal:</span><span>$${subtotalVal.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#666;"><span>Tax (8%):</span><span>$${taxVal.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Tip:</span><span>$${tipVal.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;border-top:1px dashed #333;padding-top:8px;margin-top:8px;"><span>TOTAL:</span><span style="color:#e94560;">$${totalVal.toFixed(2)}</span></div>
+        </div>
+        <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #999;font-size:12px;color:#666;">
+          Thank you for your order!<br>Please come again
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:12px;background:#e94560;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">Close</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
   } catch(e) {
     alert('Error loading receipt: ' + e.message);
   }
