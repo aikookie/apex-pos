@@ -250,7 +250,8 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
       menuItemId: menuItemId,
       quantity: item.qty,
       price: item.price,
-      modifiers: modifiersJson
+      modifiers: modifiersJson,
+      remarks: item.remarks || null
     });
     
     // Update inventory
