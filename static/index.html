@@ -1143,19 +1143,17 @@ async function viewReceipt(orderId) {
     const res = await fetch(API + '/api/orders/' + orderId);
     const order = await res.json();
     
-    // Build items HTML - exact same as showReceiptPreview()
+    // Build items HTML - use stored order values
     let itemsHtml = (order.items || []).map(i => {
       const name = i.MenuItem?.name || i.name || 'Item';
       const mods = i.modifiers ? (typeof i.modifiers === 'string' ? JSON.parse(i.modifiers) : i.modifiers) : [];
-      const modQty = {};
       const basePrice = i.price;
-      const modTotal = mods.reduce((sum, m) => sum + (parseFloat(m.price) || 0) * (modQty[m.id] || 1), 0);
-      const itemTotal = (i.quantity * basePrice) + modTotal;
+      // Use stored subtotal for this item (or calculate from stored)
+      const itemTotal = basePrice * i.quantity;
       let lines = [];
       lines.push('<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>' + i.quantity + 'x ' + name + '</span><span style="font-weight:bold;">$' + itemTotal.toFixed(2) + '</span></div>');
       mods.forEach(m => {
-        const mQty = modQty[m.id] || 1;
-        lines.push('<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + (mQty > 1 ? ' x' + mQty : '') + '</div>');
+        lines.push('<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + '</div>');
       });
       // Always show remarks
       const remarks = i.remarks || order.remarks;
@@ -1165,11 +1163,11 @@ async function viewReceipt(orderId) {
       return lines.join('');
     }).join('');
     
-    // Calculate totals like checkout does
+    // Use STORED values from order (not recalculated)
     const subtotalVal = parseFloat(order.subtotal) || 0;
-    const taxVal = Math.round(subtotalVal * 0.08 * 100) / 100;
+    const taxVal = parseFloat(order.tax) || 0;
     const tipVal = parseFloat(order.tip) || 0;
-    const totalVal = subtotalVal + taxVal + tipVal;
+    const totalVal = parseFloat(order.total) || 0;
     const orderDate = new Date(order.createdAt);
     const dateStr = orderDate.toLocaleDateString() + ' ' + orderDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     
