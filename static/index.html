@@ -1749,6 +1749,15 @@ async function processPayment(method) {
     if (res.ok) {
       const order = await res.json();
       
+      // Record payment
+      try {
+        await fetch(API + '/api/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('apex_token') },
+          body: JSON.stringify({ orderId: order.id, amount: parseFloat(total), method: method, tip: tipAmount })
+        });
+      } catch(e) { console.log('Payment recording error:', e); }
+      
       // Print receipt
       try {
         await fetch(API + '/api/print/receipt', {
@@ -1774,6 +1783,11 @@ async function processPayment(method) {
   tipAmount = 0;
   updateCartUI();
   document.getElementById('checkoutModal').style.display = 'none';
+  
+  // Refresh kitchen and tables to show new order
+  loadKitchenOrders();
+  loadTables();
+  loadOrders();
   document.getElementById('receiptPreview').style.display = 'none';
   document.getElementById('customTipAmount')?.value && (document.getElementById('customTipAmount').value = '');
   document.getElementById('cashGiven') && (document.getElementById('cashGiven').value = '');
