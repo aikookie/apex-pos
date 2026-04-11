@@ -1143,15 +1143,28 @@ async function viewReceipt(orderId) {
     const res = await fetch(API + '/api/orders/' + orderId);
     const order = await res.json();
     
-    // Build items HTML - exact same format as checkout receipt
+    // Build items HTML with ALL info from order - base price + modifiers + remarks
     let itemsHtml = (order.items || []).map(i => {
       const name = i.MenuItem?.name || i.name || 'Item';
       const mods = i.modifiers ? (typeof i.modifiers === 'string' ? JSON.parse(i.modifiers) : i.modifiers) : [];
-      let lines = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>' + i.quantity + 'x ' + name + '</span><span style="font-weight:bold;">$' + (i.price * i.quantity).toFixed(2) + '</span></div>';
+      
+      // Calculate item total: base price + all modifier prices
+      const modTotal = mods.reduce((sum, m) => sum + (parseFloat(m.price) || 0), 0);
+      const itemTotal = (i.price * i.quantity) + (modTotal * i.quantity);
+      
+      let lines = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>' + i.quantity + 'x ' + name + '</span><span style="font-weight:bold;">$' + itemTotal.toFixed(2) + '</span></div>';
+      
+      // Show modifiers
       mods.forEach(m => {
         const mQty = m.qty || 1;
-        lines += '<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + (mQty > 1 ? ' x' + mQty : '') + '</div>';
+        lines += '<div style="padding-left:12px;font-size:11px;color:#888;">- ' + m.name + (m.price ? ' (+$' + parseFloat(m.price).toFixed(2) + ')' : '') + (mQty > 1 ? ' x' + mQty : '') + '</div>';
       });
+      
+      // Show remarks if present
+      if (i.remarks) {
+        lines += '<div style="padding-left:12px;font-size:10px;color:#e94560;font-style:italic;">* ' + i.remarks + '</div>';
+      }
+      
       return lines;
     }).join('');
     
@@ -1173,6 +1186,7 @@ async function viewReceipt(orderId) {
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Subtotal:</span><span>$${order.subtotal?.toFixed(2) || '0.00'}</span></div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#666;"><span>Tax (8%):</span><span>$${order.tax?.toFixed(2) || '0.00'}</span></div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Tip:</span><span>$${order.tip?.toFixed(2) || '0.00'}</span></div>
+          ${order.cashReceived ? '<div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#888;"><span>Cash:</span><span>$' + order.cashReceived?.toFixed(2) + '</span></div><div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Change:</span><span>$' + (order.cashReceived - order.total)?.toFixed(2) + '</span></div>' : ''}
           <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;border-top:1px dashed #333;padding-top:8px;margin-top:8px;"><span>TOTAL:</span><span style="color:#e94560;">$${order.total?.toFixed(2) || '0.00'}</span></div>
         </div>
         <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed #999;font-size:12px;color:#666;">
