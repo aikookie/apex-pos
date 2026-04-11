@@ -1,4 +1,4 @@
-◇ injecting env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injecting env (0) from .env // tip: ⌘ override existing { override: true }
 DB synced
 Seeded staff
 Seeded menu with modifiers

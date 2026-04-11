@@ -892,7 +892,7 @@ function renderCartModal() {
         <span>$${subtotal.toFixed(2)}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; color:#888;">
-        <span>Tax (8%)</span>
+        <span>Tax (8.25%)</span>
         <span id="cartTaxDisplay">$${tax.toFixed(2)}</span>
       </div>
       
@@ -1186,7 +1186,7 @@ async function viewReceipt(orderId) {
         <div style="margin-bottom:12px;">${itemsHtml}</div>
         <div style="border-top:2px solid #333;padding-top:12px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Subtotal:</span><span>$${subtotalVal.toFixed(2)}</span></div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#666;"><span>Tax (8%):</span><span>$${taxVal.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#666;"><span>Tax (8.25%):</span><span>$${taxVal.toFixed(2)}</span></div>
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Tip:</span><span>$${tipVal.toFixed(2)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;border-top:1px dashed #333;padding-top:8px;margin-top:8px;"><span>TOTAL:</span><span style="color:#e94560;">$${totalVal.toFixed(2)}</span></div>
         </div>
@@ -1923,6 +1923,10 @@ async function processPayment(method) {
   updateCartUI();
   document.getElementById('checkoutModal').style.display = 'none';
   
+  // Reset payment button for next order
+  const payBtn = document.getElementById('processPaymentBtn');
+  if (payBtn) { payBtn.disabled = true; payBtn.textContent = 'Process Payment'; payBtn.style.opacity = '0.5'; }
+  
   // Refresh kitchen and tables to show new order
   loadKitchenOrders();
   loadTables();
@@ -2133,6 +2137,12 @@ async function showSettingsTab(tab, btn) {
           style="width:100%;padding:10px;margin-bottom:12px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
         <button class="btn small" onclick="saveRestaurantInfo()" style="background:#4ade80;">Save</button>
       </div>
+      <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
+        <div style="font-weight:bold;margin-bottom:12px;">Tax Rate</div>
+        <input type="number" id="taxRateInput" placeholder="8.25" step="0.01" value="8.25" 
+          style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+        <button class="btn small" onclick="saveTaxRate()" style="background:#4ade80;">Save</button>
+      </div>
       <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-weight:bold;">Stock Tracking</div>
@@ -2329,6 +2339,22 @@ function saveRestaurantInfo() {
   }).catch(() => {});
   
   alert('Restaurant info saved!');
+}
+
+async function saveTaxRate() {
+  const rate = parseFloat(document.getElementById('taxRateInput').value) || 8.25;
+  localStorage.setItem('tax_rate', rate);
+  
+  try {
+    await fetch(API + '/api/settings/taxRate', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: rate.toString() })
+    });
+    alert('Tax rate saved: ' + rate + '%');
+  } catch(e) {
+    alert('Error saving tax rate: ' + e.message);
+  }
 }
 
 async function addPrinterStation() {
@@ -2644,7 +2670,7 @@ function resetCheckout() {
     
     <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Subtotal:</span><span id="chkSubtotal">$0</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8%):</span><span id="chkTax">$0</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tax (8.25%):</span><span id="chkTax">$0</span></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>Tip:</span><span id="chkTip">$0</span></div>
       <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:bold;border-top:1px solid #333;padding-top:8px;"><span>Total:</span><span id="chkTotal" style="color:#e94560;">$0</span></div>
     </div>
@@ -2661,7 +2687,7 @@ function resetCheckout() {
       
       <div style="border-top:2px solid #333;padding-top:12px;margin-top:12px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Subtotal:</span><span id="rcptSubtotal">$0.00</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#666;"><span>Tax (8%):</span><span id="rcptTax">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#666;"><span>Tax (8.25%):</span><span id="rcptTax">$0.00</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Tip:</span><span id="rcptTip">$0.00</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#888;"><span>Cash:</span><span id="rcptCash">$0.00</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;color:#22c55e;"><span>Change:</span><span id="rcptChange">$0.00</span></div>
