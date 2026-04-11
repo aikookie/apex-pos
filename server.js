@@ -759,26 +759,26 @@ app.put('/api/inventory/:id', authMiddleware, adminOnly, async (req, res) => {
       if (item.modifiers) {
         const mods = typeof item.modifiers === 'string' ? JSON.parse(item.modifiers) : item.modifiers;
         for (const m of mods) {
-          lines.push(`   +${m.name} +$${(m.price/100).toFixed(2)}`);
+          lines.push(`   +${m.name} +$${parseFloat(m.price).toFixed(2)}`);
         }
       }
     }
     
     lines.push('----------------');
-    lines.push(`Subtotal: $${(order.subtotal/100).toFixed(2)}`);
+    lines.push(`Subtotal: $${order.subtotal.toFixed(2)}`);
     if (order.discount > 0) {
-      lines.push(`Discount: -$${((order.subtotal - order.total)/100).toFixed(2)}`);
+      lines.push(`Discount: -$${order.discount.toFixed(2)}`);
     }
-    lines.push(`Tax: $${(order.tax/100).toFixed(2)}`);
+    lines.push(`Tax: $${order.tax.toFixed(2)}`);
     lines.push('----------------');
-    lines.push(`TOTAL: $${(order.total/100).toFixed(2)}`);
+    lines.push(`TOTAL: $${order.total.toFixed(2)}`);
     lines.push('----------------');
     
     if (order.Payments?.[0]) {
       lines.push(`Payment: ${order.Payments[0].method}`);
       if (order.Payments[0].cashReceived) {
-        lines.push(`Cash: $${(order.Payments[0].cashReceived/100).toFixed(2)}`);
-        lines.push(`Change: $${(order.Payments[0].changeGiven/100).toFixed(2)}`);
+        lines.push(`Cash: $${order.Payments[0].cashReceived.toFixed(2)}`);
+        lines.push(`Change: $${order.Payments[0].changeGiven.toFixed(2)}`);
       }
     }
     lines.push('');
@@ -976,18 +976,18 @@ app.put('/api/inventory/:id', authMiddleware, adminOnly, async (req, res) => {
           if (item.modifiers) {
             const mods = typeof item.modifiers === 'string' ? JSON.parse(item.modifiers) : item.modifiers;
             for (const m of mods) {
-              printer.text(`   +${m.name} +$${(m.price/100).toFixed(2)}`);
+              printer.text(`   +${m.name} +$${parseFloat(m.price).toFixed(2)}`);
             }
           }
         }
         
         printer.text('----------------');
-        printer.text(`Subtotal: $${(order.subtotal/100).toFixed(2)}`);
+        printer.text(`Subtotal: $${order.subtotal.toFixed(2)}`);
         if (order.discount > 0) {
-          printer.text(`Discount: -$${((order.subtotal - order.total)/100).toFixed(2)}`);
+          printer.text(`Discount: -$${order.discount.toFixed(2)}`);
         }
-        printer.text(`Tax: $${(order.tax/100).toFixed(2)}`);
-        printer.size(1, 1).text(`TOTAL: $${(order.total/100).toFixed(2)}`);
+        printer.text(`Tax: $${order.tax.toFixed(2)}`);
+        printer.size(1, 1).text(`TOTAL: $${order.total.toFixed(2)}`);
         printer.text('----------------');
         printer.text('Payment: ' + (order.Payments?.[0]?.method || 'N/A'));
         printer.text('');

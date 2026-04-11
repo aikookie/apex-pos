@@ -764,7 +764,8 @@ function updateCartUI() {
     const modTotal = (c.modifiers || []).reduce((m, mod) => m + (mod.price * (c.modifierQty?.[mod.id] || 1)), 0);
     return sum + (c.qty * (c.basePrice || c.price)) + modTotal;
   }, 0);
-  const tax = subtotal * 0.08;
+  const taxRate = 0.0825;
+  const tax = Math.round(subtotal * taxRate * 100) / 100;
   const total = subtotal + tax;
   
   document.querySelectorAll('.cart-count').forEach(el => el.textContent = count);
@@ -810,7 +811,8 @@ function updateDiscountDisplay() {
   }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
-  const tax = taxableAmount * 0.08;
+  const taxRate = 0.0825;
+  const tax = Math.round(taxableAmount * taxRate * 100) / 100;
   const total = taxableAmount + tax;
   
   if (pctBtn) pctBtn.style.background = discountTypeGlobal === 'percent' ? '#e94560' : '#252545';
@@ -844,9 +846,9 @@ function renderCartModal() {
   const discountValue = discountValueGlobal;
   const discountAmount = discountType === 'percent' ? (subtotal * discountValue / 100) : discountValue;
   const taxableAmount = subtotal - discountAmount;
-  const taxRate = 0.08;
-  const tax = taxableAmount * taxRate;
-  const total = taxableAmount + tax;
+  const taxRate = 0.0825;
+  const tax = Math.round(taxableAmount * taxRate * 100) / 100;
+  const total = Number((taxableAmount + tax).toFixed(2));
   
   container.innerHTML = cart.map((c, idx) => {
     const modQty = c.modifierQty || {};
@@ -974,7 +976,8 @@ function processCheckout() {
     ? subtotal * (discount.value / 100) 
     : discount.value;
   const taxableAmount = subtotal - discountAmount;
-  const tax = taxableAmount * 0.08;
+  const taxRate = 0.0825;
+  const tax = Math.round(taxableAmount * taxRate * 100) / 100;
   const total = taxableAmount + tax;
   
   const order = {
@@ -1547,7 +1550,8 @@ function updateCheckoutTotals() {
   }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
-  const tax = taxableAmount * 0.08;
+  const taxRate = 0.0825;
+  const tax = Math.round(taxableAmount * taxRate * 100) / 100;
   
   // Calculate tip
   if (tipPercent > 0) {
@@ -1579,7 +1583,8 @@ function showReceiptPreview() {
   }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
-  const tax = taxableAmount * 0.08;
+  const taxRate = 0.0825;
+  const tax = Math.round(taxableAmount * taxRate * 100) / 100;
   
   if (tipPercent > 0) {
     tipAmount = taxableAmount * (tipPercent / 100);
@@ -1679,7 +1684,8 @@ function openCheckoutModal() {
   }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
-  const tax = taxableAmount * 0.08;
+  const taxRate = 0.0825;
+  const tax = Math.round(taxableAmount * taxRate * 100) / 100;
   const total = taxableAmount + tax;
   
   // Build cart items display
@@ -1830,7 +1836,8 @@ async function processPayment(method) {
   }, 0);
   const discountAmount = discountTypeGlobal === 'percent' ? (subtotal * discountValueGlobal / 100) : discountValueGlobal;
   const taxableAmount = subtotal - discountAmount;
-  const tax = taxableAmount * 0.08;
+  const taxRate = 0.0825;
+  const tax = Math.round(taxableAmount * taxRate * 100) / 100;
   
   // Calculate tip - ensure we use current values
   const customTipInput = document.getElementById('customTipAmount');
