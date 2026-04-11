@@ -226,8 +226,8 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
   } catch (e) { /* use default */ }
   
   const taxableAmount = subtotal - discountAmount;
-  const tax = Math.round(taxableAmount * (taxRate / 100));
-  const total = taxableAmount + tax + tip;
+  const tax = Math.round(taxableAmount * (taxRate / 100) * 100) / 100;
+  const total = Number((taxableAmount + tax + tip).toFixed(2));
   
   const order = await Order.create({
     TableId: tableId,
