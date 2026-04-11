@@ -1,4 +1,4 @@
-◇ injecting env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injecting env (0) from .env // tip: ⌘ enable debugging { debug: true }
 DB synced
 Seeded staff
 Seeded menu with modifiers

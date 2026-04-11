@@ -2132,12 +2132,15 @@ async function showSettingsTab(tab, btn) {
     const stockEnabled = localStorage.getItem('stock_enabled') === 'true';
     const restName = localStorage.getItem('restaurant_name') || 'APEX POS';
     const restAddress = localStorage.getItem('restaurant_address') || '';
+    const restPhone = localStorage.getItem('restaurant_phone') || '';
     content.innerHTML = `
       <div style="background:#16213e;padding:16px;border-radius:8px;margin-bottom:16px;">
         <div style="font-weight:bold;margin-bottom:12px;">Restaurant Info</div>
         <input type="text" id="restNameInput" placeholder="Restaurant Name" value="${restName}" 
           style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
         <input type="text" id="restAddressInput" placeholder="Address" value="${restAddress}" 
+          style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
+        <input type="tel" id="restPhoneInput" placeholder="Phone" value="${restPhone}" 
           style="width:100%;padding:10px;margin-bottom:12px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;">
         <button class="btn small" onclick="saveRestaurantInfo()" style="background:#4ade80;">Save</button>
       </div>
@@ -2327,8 +2330,10 @@ function toggleStock() {
 function saveRestaurantInfo() {
   const name = document.getElementById('restNameInput').value.trim() || 'APEX POS';
   const address = document.getElementById('restAddressInput').value.trim();
+  const phone = document.getElementById('restPhoneInput').value.trim();
   localStorage.setItem('restaurant_name', name);
   localStorage.setItem('restaurant_address', address);
+  localStorage.setItem('restaurant_phone', phone);
   
   // Save to backend
   fetch(API + '/api/settings/restaurant_name', {
@@ -2340,6 +2345,11 @@ function saveRestaurantInfo() {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ value: address })
+  }).catch(() => {});
+  fetch(API + '/api/settings/restaurant_phone', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: phone })
   }).catch(() => {});
   
   alert('Restaurant info saved!');
