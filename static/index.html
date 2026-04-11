@@ -656,11 +656,11 @@ function toggleItemModifier(modId, modName, modPrice) {
     label.style.background = isSelected ? '#1f2937' : '#16213e';
     label.style.border = isSelected ? '1px solid #e94560' : '1px solid transparent';
   }
-  // Update price display
+  // Update price display in modal only
   const modTotal = itemModifiers.reduce((sum, m) => sum + m.price, 0);
   const basePrice = menuItems.find(i => i.id === currentItemId)?.price || 0;
   const totalPrice = basePrice + modTotal;
-  const priceEl = document.querySelector('.price');
+  const priceEl = document.getElementById('itemModal').querySelector('.price');
   if (priceEl) priceEl.textContent = '$' + totalPrice.toFixed(2);
 }
 
